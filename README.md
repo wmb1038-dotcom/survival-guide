@@ -36,7 +36,7 @@ Built for Oahu, Hawaii, but designed to be adapted for any location.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/survival-guide.git
+git clone https://github.com/wmb1038-dotcom/survival-guide.git
 cd survival-guide
 ```
 
