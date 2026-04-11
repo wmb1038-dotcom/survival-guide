@@ -93,11 +93,31 @@ class WaterSourceEngine: ObservableObject {
     }
 }
 
+// MARK: - Map Style
+
+enum WaterMapStyle: String, CaseIterable, Identifiable {
+    case standard  = "Standard"
+    case terrain   = "Terrain"
+    case satellite = "Satellite"
+    case hybrid    = "Hybrid"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .standard:  return "map"
+        case .terrain:   return "mountain.2"
+        case .satellite: return "globe.americas.fill"
+        case .hybrid:    return "map.fill"
+        }
+    }
+}
+
 // MARK: - MKMapView wrapper (macOS 13+ compatible, supports tap-to-place)
 
 struct WaterMapView: NSViewRepresentable {
     @Binding var sources: [WaterSource]
     @Binding var pendingCoordinate: CLLocationCoordinate2D?
+    var mapStyle: WaterMapStyle
+    var initialCenter: CLLocationCoordinate2D
     var onTap: (CLLocationCoordinate2D) -> Void
     var onSelect: (WaterSource) -> Void
 
@@ -107,24 +127,56 @@ struct WaterMapView: NSViewRepresentable {
         let map = MKMapView()
         map.delegate = context.coordinator
         map.showsUserLocation = true
+        map.showsZoomControls = true
+
+        // Set initial region
+        let region = MKCoordinateRegion(center: initialCenter,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4))
+        map.setRegion(region, animated: false)
+
+        // Apply offline tile overlay if tiles are downloaded for this area
+        let mgr = OfflineMapManager.shared
+        if let overlay = mgr.bestOverlay(lat: initialCenter.latitude, lon: initialCenter.longitude) {
+            map.addOverlay(overlay, level: .aboveRoads)
+            context.coordinator.appliedOverlay = overlay
+        }
 
         let click = NSClickGestureRecognizer(target: context.coordinator,
                                              action: #selector(Coordinator.handleClick(_:)))
+        click.numberOfClicksRequired = 2
         map.addGestureRecognizer(click)
         return map
     }
 
     func updateNSView(_ map: MKMapView, context: Context) {
+        // Apply map style
+        let newConfig: MKMapConfiguration
+        switch mapStyle {
+        case .standard:
+            newConfig = MKStandardMapConfiguration(elevationStyle: .flat, emphasisStyle: .default)
+        case .terrain:
+            newConfig = MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .default)
+        case .satellite:
+            newConfig = MKImageryMapConfiguration(elevationStyle: .realistic)
+        case .hybrid:
+            newConfig = MKHybridMapConfiguration(elevationStyle: .realistic)
+        }
+        // Only update if changed (avoids flicker)
+        if type(of: map.preferredConfiguration) != type(of: newConfig)
+            || mapStyle != (map.preferredConfiguration as? MKStandardMapConfiguration).map({
+                $0.elevationStyle == .realistic ? WaterMapStyle.terrain : .standard
+            }) {
+            map.preferredConfiguration = newConfig
+        }
+
         // Sync annotations
         let existing = map.annotations.compactMap { $0 as? WaterAnnotation }
         let existingIDs = Set(existing.map(\.source.id))
         let newIDs = Set(sources.map(\.id))
 
-        // Remove stale
         let toRemove = existing.filter { !newIDs.contains($0.source.id) }
         map.removeAnnotations(toRemove)
 
-        // Add new
         for source in sources where !existingIDs.contains(source.id) {
             map.addAnnotation(WaterAnnotation(source: source))
         }
@@ -139,12 +191,15 @@ struct WaterMapView: NSViewRepresentable {
 
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: WaterMapView
+        var appliedOverlay: LocalTileOverlay? = nil
 
         init(_ parent: WaterMapView) { self.parent = parent }
 
         @objc func handleClick(_ recognizer: NSClickGestureRecognizer) {
             guard let map = recognizer.view as? MKMapView else { return }
             let point = recognizer.location(in: map)
+            // Let clicks on built-in controls (zoom buttons, etc.) pass through
+            if let hit = map.hitTest(point), !(hit is MKMapView) { return }
             let coord = map.convert(point, toCoordinateFrom: map)
             parent.onTap(coord)
         }
@@ -153,6 +208,13 @@ struct WaterMapView: NSViewRepresentable {
             if let wa = annotationView.annotation as? WaterAnnotation {
                 parent.onSelect(wa.source)
             }
+        }
+
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let tileOverlay = overlay as? MKTileOverlay {
+                return MKTileOverlayRenderer(tileOverlay: tileOverlay)
+            }
+            return MKOverlayRenderer(overlay: overlay)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -208,9 +270,10 @@ struct WaterSourceMapView: View {
     @EnvironmentObject private var locationStore: LocationStore
 
     @State private var pendingCoord : CLLocationCoordinate2D? = nil
-    @State private var showAddSheet : Bool         = false
-    @State private var editing      : WaterSource? = nil
+    @State private var showAddSheet : Bool           = false
+    @State private var editing      : WaterSource?   = nil
     @State private var selectedForDetail: WaterSource? = nil
+    @State private var mapStyle     : WaterMapStyle  = .standard
 
     var body: some View {
         HSplitView {
@@ -219,6 +282,8 @@ struct WaterSourceMapView: View {
                 WaterMapView(
                     sources: $engine.sources,
                     pendingCoordinate: $pendingCoord,
+                    mapStyle: mapStyle,
+                    initialCenter: defaultCenter,
                     onTap: { coord in
                         pendingCoord = coord
                         var s = WaterSource()
@@ -230,7 +295,30 @@ struct WaterSourceMapView: View {
                     onSelect: { source in selectedForDetail = source }
                 )
 
-                VStack(spacing: 8) {
+                VStack(alignment: .trailing, spacing: 8) {
+                    // Map style picker
+                    HStack(spacing: 0) {
+                        ForEach(WaterMapStyle.allCases) { style in
+                            Button {
+                                mapStyle = style
+                            } label: {
+                                Image(systemName: style.symbol)
+                                    .font(.system(size: 11))
+                                    .frame(width: 28, height: 26)
+                                    .background(mapStyle == style
+                                                ? Color.accentColor.opacity(0.8)
+                                                : Color.clear)
+                                    .foregroundStyle(mapStyle == style ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                            .help(style.rawValue)
+                        }
+                    }
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 7))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.white.opacity(0.15)))
+                    .padding(.top, 12)
+                    .padding(.trailing, 12)
+
                     Button {
                         var s = WaterSource()
                         s.latitude  = defaultCenter.latitude
@@ -245,10 +333,9 @@ struct WaterSourceMapView: View {
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, 12)
                     .padding(.trailing, 12)
 
-                    Text("Click map to place a source")
+                    Text("Double-click map to place a source")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 8)

@@ -42,6 +42,7 @@ class AppSettingsStore: ObservableObject {
 struct SettingsView: View {
     @StateObject private var store       = AppSettingsStore.shared
     @StateObject private var notifMgr    = NotificationManager.shared
+    @StateObject private var mapManager  = OfflineMapManager.shared
     @EnvironmentObject private var locationStore: LocationStore
     @EnvironmentObject private var supplyEngine : SupplyEngine
 
@@ -51,6 +52,7 @@ struct SettingsView: View {
     @State private var generatorLog     : [String]   = []
     @State private var showResetConfirm : Bool       = false
     @State private var showResetWizard  : Bool       = false
+    @State private var showCustomRegion : Bool       = false
 
     var body: some View {
         ScrollView {
@@ -59,6 +61,7 @@ struct SettingsView: View {
 
                 locationSection
                 ollamaSection
+                offlineMapsSection
                 notificationsSection
                 calorieSection
                 dataSection
@@ -197,6 +200,87 @@ struct SettingsView: View {
                 Text("Model is used for AI chat and survival guide generation. Auto-detect picks the best available model.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }
+        }
+    }
+
+    // MARK: - Offline Maps
+
+    private var offlineMapsSection: some View {
+        SettingsCard(title: "Offline Maps", symbol: "map.fill", color: .teal) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Download map tiles to your 20TB HDD for fully offline use in the Water Sources map. Tiles are stored at /Volumes/20TB_HDD/offline-library/offline-maps/")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+
+                // Active download progress
+                if mapManager.isDownloading {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(mapManager.activeRegionName)
+                                .font(.system(size: 13, weight: .semibold))
+                            Spacer()
+                            Text(String(format: "%.0f tiles/s", mapManager.tilesPerSec))
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
+                            Button("Cancel") { mapManager.cancelDownload() }
+                                .buttonStyle(.bordered).tint(.red)
+                                .font(.system(size: 11))
+                        }
+                        ProgressView(value: mapManager.downloadProgress) {
+                            Text(String(format: "%d / %d tiles  (%.1f%%)",
+                                        mapManager.downloadedTiles,
+                                        mapManager.totalTiles,
+                                        mapManager.downloadProgress * 100))
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
+                        }
+                        .progressViewStyle(.linear)
+
+                        if !mapManager.log.isEmpty {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    ForEach(Array(mapManager.log.enumerated()), id: \.offset) { _, line in
+                                        Text(line)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundStyle(line.hasPrefix("✓") ? .green :
+                                                             line.hasPrefix("✗") ? .red : .secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(6)
+                            }
+                            .frame(height: 80)
+                            .background(Color.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 6))
+                        }
+                    }
+                    .padding(10)
+                    .background(Color.teal.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+
+                    Divider()
+                }
+
+                // Region list
+                VStack(spacing: 6) {
+                    ForEach(mapManager.regions) { region in
+                        OfflineMapRegionRow(
+                            region: region,
+                            isDownloaded: mapManager.isDownloaded(region),
+                            diskUsage: mapManager.isDownloaded(region) ? mapManager.diskUsage(region) : nil,
+                            isActiveDownload: mapManager.isDownloading && mapManager.activeRegionName == region.name,
+                            canDownload: !mapManager.isDownloading,
+                            onDownload: { mapManager.startDownload(region) },
+                            onDelete: { mapManager.deleteRegion(region) }
+                        )
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Add Custom Region…") { showCustomRegion = true }
+                        .buttonStyle(.bordered)
+                        .font(.system(size: 12))
+                }
+            }
+        }
+        .sheet(isPresented: $showCustomRegion) {
+            CustomRegionSheet { mapManager.addCustomRegion($0) }
         }
     }
 
@@ -415,5 +499,151 @@ private struct SettingsToggle: View {
         Toggle(label, isOn: $isOn)
             .font(.system(size: 13))
             .toggleStyle(.switch)
+    }
+}
+
+// MARK: - Offline Map Region Row
+
+private struct OfflineMapRegionRow: View {
+    let region          : OfflineMapRegion
+    let isDownloaded    : Bool
+    let diskUsage       : String?
+    let isActiveDownload: Bool
+    let canDownload     : Bool
+    let onDownload      : () -> Void
+    let onDelete        : () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isDownloaded ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 14))
+                .foregroundStyle(isDownloaded ? .green : .secondary)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(region.name)
+                    .font(.system(size: 12, weight: .medium))
+                HStack(spacing: 6) {
+                    Text("Zoom \(region.minZoom)–\(region.maxZoom)")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text("~\(String(format: "%.1f GB", region.estimatedGB)) est.")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                    if let usage = diskUsage {
+                        Text("·")
+                            .font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text(usage + " on disk")
+                            .font(.system(size: 10)).foregroundStyle(.green)
+                    }
+                    Text(region.source.rawValue)
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            if isActiveDownload {
+                ProgressView().scaleEffect(0.6)
+            } else if isDownloaded {
+                Button("Delete") { onDelete() }
+                    .buttonStyle(.bordered).tint(.red)
+                    .font(.system(size: 11))
+            } else {
+                Button("Download") { onDownload() }
+                    .buttonStyle(.bordered).tint(.teal)
+                    .font(.system(size: 11))
+                    .disabled(!canDownload)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Custom Region Sheet
+
+private struct CustomRegionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onSave: (OfflineMapRegion) -> Void
+
+    @State private var name    = ""
+    @State private var minLat  = ""
+    @State private var maxLat  = ""
+    @State private var minLon  = ""
+    @State private var maxLon  = ""
+    @State private var minZoom = 8
+    @State private var maxZoom = 16
+    @State private var source  = TileSource.osm
+
+    private var region: OfflineMapRegion? {
+        guard !name.isEmpty,
+              let mnLat = Double(minLat), let mxLat = Double(maxLat),
+              let mnLon = Double(minLon), let mxLon = Double(maxLon),
+              mnLat < mxLat, mnLon < mxLon else { return nil }
+        return OfflineMapRegion(name: name,
+                                minLat: mnLat, maxLat: mxLat,
+                                minLon: mnLon, maxLon: mxLon,
+                                minZoom: minZoom, maxZoom: maxZoom,
+                                source: source)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Custom Region").font(.system(size: 16, weight: .semibold))
+                Spacer()
+                Button("Cancel") { dismiss() }
+                Button("Add") {
+                    if let r = region { onSave(r); dismiss() }
+                }
+                .buttonStyle(.borderedProminent).tint(.teal)
+                .disabled(region == nil)
+            }.padding()
+            Divider()
+            Form {
+                Section("Name") {
+                    TextField("e.g. My County, CA", text: $name)
+                }
+                Section("Bounding Box (decimal degrees)") {
+                    HStack {
+                        Text("Min Latitude");  Spacer()
+                        TextField("e.g. 21.20", text: $minLat).frame(width: 120).multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Max Latitude");  Spacer()
+                        TextField("e.g. 21.78", text: $maxLat).frame(width: 120).multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Min Longitude"); Spacer()
+                        TextField("e.g. -158.35", text: $minLon).frame(width: 120).multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Max Longitude"); Spacer()
+                        TextField("e.g. -157.60", text: $maxLon).frame(width: 120).multilineTextAlignment(.trailing)
+                    }
+                }
+                Section("Options") {
+                    HStack {
+                        Text("Min Zoom"); Spacer()
+                        Stepper("\(minZoom)", value: $minZoom, in: 1...18)
+                    }
+                    HStack {
+                        Text("Max Zoom"); Spacer()
+                        Stepper("\(maxZoom)", value: $maxZoom, in: minZoom...18)
+                    }
+                    Picker("Tile Source", selection: $source) {
+                        ForEach(TileSource.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                }
+                if let r = region {
+                    Section("Estimate") {
+                        Text("~\(r.estimatedTileCount) tiles · ~\(String(format: "%.1f GB", r.estimatedGB))")
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+        }
+        .frame(minWidth: 440, minHeight: 480)
     }
 }

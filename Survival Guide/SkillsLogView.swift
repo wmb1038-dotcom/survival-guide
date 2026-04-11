@@ -13,7 +13,7 @@ struct SkillItem: Identifiable {
 
 // MARK: - Skill Database
 
-private let allSkills: [SkillItem] = [
+let allSkills: [SkillItem] = [
     // Medical & First Aid
     SkillItem(id: "med_cpr_adult",     category: "Medical & First Aid", name: "CPR — Adult",                 description: "30 compressions : 2 breaths, 100–120/min, 2+ inches depth",       priority: 1),
     SkillItem(id: "med_cpr_child",     category: "Medical & First Aid", name: "CPR — Child / Infant",         description: "Same ratio but 1 hand, 1.5\" depth; 2 fingers for infant",         priority: 1),
