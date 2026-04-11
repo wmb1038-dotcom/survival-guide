@@ -1,8 +1,8 @@
 # Offline Survival Guide
 
-A macOS app for offline emergency preparedness. Browse a local library of survival documents, search across them with AI-assisted query expansion, chat with a local AI assistant, and track historical weather patterns — all without an internet connection.
+A macOS app for comprehensive offline emergency preparedness. Configure it for your location, track supplies and medications, run survival calculators, and generate AI-written HTML survival guides — all without an internet connection.
 
-Built for Oahu, Hawaii, but designed to be adapted for any location.
+Built for Oahu, Hawaii (Island + Mountainous terrain), but fully configurable for any location via the built-in setup wizard.
 
 ![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-blue)
 ![Swift](https://img.shields.io/badge/swift-5.9-orange)
@@ -12,11 +12,33 @@ Built for Oahu, Hawaii, but designed to be adapted for any location.
 
 ## Features
 
-- **Offline Document Library** — Browse PDFs, HTML guides, EPUBs, and ZIM archives organized by topic (Survival Guides, Medical, Military Manuals, Preparedness, and more)
+### Setup & Location
+- **Location Wizard** — 5-step guided setup: city, multi-select terrain (Island + Mountainous simultaneously), hazards, household (adults, children, dogs, cats, small animals)
+- **AI Guide Generation** — After setup, automatically generates location-specific HTML survival guides (one per hazard) via a local Ollama model and saves them to your offline library. Live terminal-style progress shown in the wizard.
+- **Climate Database** — NOAA 1991–2020 normals for 30+ US cities; drives weather forecasts and frost date calculations
+
+### Tools
+| Tool | Description |
+|---|---|
+| **Quick Reference** | Fully editable cards (emergency contacts, radio frequencies, hospitals, shelters, facts) with per-entry notes |
+| **Communications** | Morse code reference, radio frequency guide |
+| **Checklists** | Preparedness checklists by scenario |
+| **Supply Tracker** | Water/food/supply inventory with household-aware calculations; small animals supported |
+| **Food Rotation** | Food inventory with expiration tracking, calorie totals, days-of-supply estimate, FIFO reminders, and local notifications 30/7/1 days before expiration |
+| **Seed Bank** | Seed inventory with planting calendar (frost dates from climate data), garden bed tracker with harvest countdown |
+| **Weather Forecast** | 5-day rolling forecast from NOAA climate normals, refined by your daily observations |
+| **Emergency Plan** | Personal emergency plan editor |
+| **Calculators** | Water, food, power, and solar power calculators. Solar defaults to Tesla Powerwall 2 + 18× Enphase IQ8H (fully editable). Appliance load selector with quantity steppers and up to 10 custom items. |
+| **Medication Tracker** | Medication inventory with refill reminders |
+| **Documents Vault** | Secure local document storage |
+| **Skills Log** | Flat checklist of survival skills by category |
+| **Skill Tree** | Visual tiered skill tree (Tier 1 Critical → Tier 3 Useful) with category progress rings; syncs with Skills Log |
+| **Power Outage Log** | Live outage status, one-tap start/end, outage history, fuel log, battery level log with stats |
+
+### Library
+- **Offline Document Library** — Browse PDFs, HTML guides, EPUBs, and ZIM archives organized by topic
 - **Full-Text Search** — Keyword search across all indexed documents, expanded with AI-generated related terms
-- **AI Survival Assistant** — Local LLM chat via [Ollama](https://ollama.com) — no internet, no API keys, no data sent anywhere
-- **Historical Weather Forecast** — 5-day rolling forecast based on NOAA 1991–2020 climate normals, refined by your own daily observations
-- **Section Browser** — Visual card grid for topics and documents; full-screen document preview
+- **AI Survival Assistant** — Local LLM chat via [Ollama](https://ollama.com); location-aware system prompt built from your setup
 
 ---
 
@@ -26,7 +48,7 @@ Built for Oahu, Hawaii, but designed to be adapted for any location.
 |---|---|
 | macOS | 13.0 Ventura or later |
 | Xcode | 15 or later |
-| [Ollama](https://ollama.com) | Latest |
+| [Ollama](https://ollama.com) | Latest (optional — enables AI chat + guide generation) |
 | Disk space | ~5 GB minimum for a useful library |
 
 ---
@@ -40,7 +62,7 @@ git clone https://github.com/wmb1038-dotcom/survival-guide.git
 cd survival-guide
 ```
 
-### 2. Install Ollama
+### 2. Install Ollama (optional but recommended)
 
 Download from [ollama.com](https://ollama.com) and pull a model:
 
@@ -49,38 +71,47 @@ Download from [ollama.com](https://ollama.com) and pull a model:
 ollama pull llama3.1:8b
 
 # For 8 GB RAM Macs
-ollama pull llama3.2:3b
+ollama pull phi3:mini
 ```
 
 To store models on an external drive:
 
 ```bash
-OLLAMA_MODELS=/Volumes/YOUR_DRIVE/local-models ollama pull llama3.1:8b
+OLLAMA_MODELS=/Volumes/YOUR_DRIVE/local-models ollama serve &
+ollama pull llama3.1:8b
 ```
 
-### 3. Build the app
+### 3. Build and run
 
-Open `Survival Guide.xcodeproj` in Xcode and press **⌘R**, or build from the command line:
+Open `Survival Guide.xcodeproj` in Xcode and press **⌘R**, or:
 
 ```bash
 xcodebuild -scheme "Survival Guide" -destination "platform=macOS" build
 ```
 
-### 4. Set up your document library
+### 4. Run the setup wizard
 
-The app expects documents at `/Volumes/20TB_HDD/offline-library/` by default. You can change this path in `OfflineLibraryApp.swift` (the `base` constant in `ContentView`).
+On first launch, the setup wizard walks you through:
+1. Welcome
+2. Location (city, state/region)
+3. Terrain type (multi-select: Island, Mountainous, Coastal, etc.)
+4. Hazards (Hurricane, Earthquake, Wildfire, etc.)
+5. Household (adults, children, dogs, cats, small animals)
+6. **AI Guide Generation** — Ollama generates a full HTML survival guide for each selected hazard, saved to your offline library
 
-Recommended free/public-domain documents to download — see [DOCUMENTS.md](DOCUMENTS.md).
+### 5. Set up your document library
 
-### 5. Build the search index
+The app expects documents at `/Volumes/20TB_HDD/offline-library/` by default. You can change this in `OfflineLibraryApp.swift`.
 
-Run the included indexing script to enable full-text search:
+See [DOCUMENTS.md](DOCUMENTS.md) for recommended free/public-domain documents to download.
+
+### 6. Build the search index
 
 ```bash
 bash build_offline_search_index_v2.sh
 ```
 
-This walks your library folder, extracts text from PDFs/HTML/EPUBs, and writes an index to `/Volumes/20TB_HDD/offline_search_index.json`.
+Walks your library folder, extracts text from PDFs/HTML/EPUBs, and writes `/Volumes/20TB_HDD/offline_search_index.json`.
 
 ---
 
@@ -89,8 +120,14 @@ This walks your library folder, extracts text from PDFs/HTML/EPUBs, and writes a
 ```
 /Volumes/20TB_HDD/
 ├── offline-library/
-│   ├── survival-guides/       ← Oahu-specific HTML guides (included in repo)
-│   ├── trueprepper/           ← TruePrepper PDFs (download separately)
+│   ├── survival-guides/         ← AI-generated location-specific HTML guides
+│   │   └── {city-state}/        ← One folder per configured location
+│   │       ├── index.html
+│   │       ├── hurricane.html
+│   │       ├── earthquake.html
+│   │       └── ...
+│   ├── home repair/             ← FEMA, USDA, HUD home repair references
+│   ├── trueprepper/             ← TruePrepper PDFs (download separately)
 │   │   ├── military-manuals/
 │   │   ├── survival-manuals/
 │   │   ├── preparedness/
@@ -103,23 +140,24 @@ This walks your library folder, extracts text from PDFs/HTML/EPUBs, and writes a
 │   ├── cooking/
 │   ├── gardening-water/
 │   ├── radio/
-│   └── books/
-├── offline-wikipedia/         ← Wikipedia ZIM (download from Kiwix)
-└── local-models/              ← Ollama models (optional, for external drive)
+│   ├── nuclear-guides/
+│   ├── books/
+│   └── ...
+├── offline-wikipedia/           ← Wikipedia ZIM (download from Kiwix)
+└── local-models/                ← Ollama models (optional, for external drive)
 ```
 
 ---
 
-## Customizing for Your Location
+## Notifications
 
-The app is currently configured for Oahu, Hawaii. To adapt it:
+The app uses local macOS notifications (no internet required) for:
+- Food expiration warnings (30 days, 7 days, 1 day before)
+- Water storage rotation reminders (every 6 months)
+- Generator test reminders (monthly)
+- Medication refill reminders
 
-1. **AI assistant** — Edit the `systemPrompt` in `AgentViewModel` (`OfflineLibraryApp.swift`) with local hazards, infrastructure, frequencies, and geography
-2. **Weather** — The `oahuNormals` array in `WeatherView.swift` uses NOAA data for Honolulu. Replace with normals for your nearest city ([NOAA Climate Normals](https://www.ncei.noaa.gov/products/land-based-station/us-climate-normals))
-3. **Survival guides** — Replace the HTML files in `offline-library/survival-guides/` with guides relevant to your area
-4. **Document catalog** — Edit the `items` array in `ContentView` to point to your local files
-
-A location-aware setup wizard is planned for a future release.
+Grant notification permission when prompted on first launch.
 
 ---
 
@@ -128,7 +166,7 @@ A location-aware setup wizard is planned for a future release.
 Pull requests welcome. If you adapt this for your region, consider opening a PR to add your climate normals data or survival guide templates.
 
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
+2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Commit your changes
 4. Open a pull request
 
@@ -136,7 +174,7 @@ Pull requests welcome. If you adapt this for your region, consider opening a PR 
 
 ## Acknowledgments
 
-- Document sources: [TruePrepper](https://trueprepper.com/survival-pdfs-downloads/), USDA, FEMA, US Army, US Navy, USMC (public domain)
+- Document sources: [TruePrepper](https://trueprepper.com/survival-pdfs-downloads/), USDA, FEMA, HUD, DOE, US Army, US Navy, USMC (public domain)
 - AI inference: [Ollama](https://ollama.com)
 - Offline Wikipedia: [Kiwix](https://www.kiwix.org)
 - Weather data: NOAA 1991–2020 Climate Normals
