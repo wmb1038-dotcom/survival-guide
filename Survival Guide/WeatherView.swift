@@ -75,26 +75,32 @@ struct ForecastDay {
     let observation: DailyObservation?
 }
 
-// MARK: - Oahu Climate Normals (NOAA 1991–2020, Honolulu Intl Airport)
+// MARK: - Fallback climate normals (temperate mid-latitude)
 
-let oahuNormals: [ClimateNormal] = [
-    ClimateNormal(month: 1,  highF: 80.4, lowF: 66.4, rainProbability: 0.33, avgWindMph: 12),
-    ClimateNormal(month: 2,  highF: 80.8, lowF: 65.9, rainProbability: 0.27, avgWindMph: 12),
-    ClimateNormal(month: 3,  highF: 81.9, lowF: 67.2, rainProbability: 0.29, avgWindMph: 13),
-    ClimateNormal(month: 4,  highF: 83.6, lowF: 68.4, rainProbability: 0.20, avgWindMph: 13),
-    ClimateNormal(month: 5,  highF: 85.5, lowF: 70.3, rainProbability: 0.19, avgWindMph: 13),
-    ClimateNormal(month: 6,  highF: 87.4, lowF: 72.4, rainProbability: 0.17, avgWindMph: 11),
-    ClimateNormal(month: 7,  highF: 88.7, lowF: 73.8, rainProbability: 0.16, avgWindMph: 11),
-    ClimateNormal(month: 8,  highF: 89.5, lowF: 74.5, rainProbability: 0.16, avgWindMph: 11),
-    ClimateNormal(month: 9,  highF: 89.2, lowF: 73.8, rainProbability: 0.20, avgWindMph: 12),
-    ClimateNormal(month: 10, highF: 87.3, lowF: 72.6, rainProbability: 0.23, avgWindMph: 12),
-    ClimateNormal(month: 11, highF: 84.3, lowF: 69.9, rainProbability: 0.30, avgWindMph: 12),
-    ClimateNormal(month: 12, highF: 81.4, lowF: 67.3, rainProbability: 0.32, avgWindMph: 12),
+private let fallbackNormals: [ClimateNormal] = [
+    ClimateNormal(month: 1,  highF: 45.0, lowF: 28.0, rainProbability: 0.30, avgWindMph: 10),
+    ClimateNormal(month: 2,  highF: 48.0, lowF: 30.0, rainProbability: 0.28, avgWindMph: 10),
+    ClimateNormal(month: 3,  highF: 55.0, lowF: 36.0, rainProbability: 0.30, avgWindMph: 11),
+    ClimateNormal(month: 4,  highF: 64.0, lowF: 44.0, rainProbability: 0.28, avgWindMph: 11),
+    ClimateNormal(month: 5,  highF: 73.0, lowF: 53.0, rainProbability: 0.27, avgWindMph: 10),
+    ClimateNormal(month: 6,  highF: 82.0, lowF: 62.0, rainProbability: 0.22, avgWindMph: 9),
+    ClimateNormal(month: 7,  highF: 87.0, lowF: 67.0, rainProbability: 0.20, avgWindMph: 8),
+    ClimateNormal(month: 8,  highF: 86.0, lowF: 66.0, rainProbability: 0.21, avgWindMph: 8),
+    ClimateNormal(month: 9,  highF: 79.0, lowF: 58.0, rainProbability: 0.24, avgWindMph: 9),
+    ClimateNormal(month: 10, highF: 68.0, lowF: 47.0, rainProbability: 0.27, avgWindMph: 10),
+    ClimateNormal(month: 11, highF: 56.0, lowF: 38.0, rainProbability: 0.29, avgWindMph: 10),
+    ClimateNormal(month: 12, highF: 47.0, lowF: 30.0, rainProbability: 0.30, avgWindMph: 10),
 ]
 
-func oahuNormal(for date: Date) -> ClimateNormal {
+/// Returns the ClimateNormal for the given date using LocationStore config.
+/// Falls back to temperate normals if no match is found in ClimateDatabase.
+func locationNormal(for date: Date) -> ClimateNormal {
     let m = Calendar.current.component(.month, from: date)
-    return oahuNormals[m - 1]
+    let config = LocationStore.shared.config
+    if let city = findClimateNormals(for: config) {
+        return city.months[m - 1]
+    }
+    return fallbackNormals[m - 1]
 }
 
 private func conditionForRainProb(_ p: Double) -> WeatherCondition {
@@ -162,7 +168,7 @@ class WeatherEngine: ObservableObject {
         for obs in recent {
             let daysAgo = max(0, cal.dateComponents([.day], from: obs.date, to: Date()).day ?? 0)
             let w = pow(0.8, Double(daysAgo))
-            let norm = oahuNormal(for: obs.date)
+            let norm = locationNormal(for: obs.date)
             if let h = obs.highF { highW += (h - norm.highF) * w }
             if let l = obs.lowF  { lowW  += (l - norm.lowF)  * w }
             rainW += ((obs.condition.isRainy ? 1.0 : 0.0) - norm.rainProbability) * w
@@ -184,7 +190,7 @@ class WeatherEngine: ObservableObject {
 
         forecast = (0..<5).map { offset in
             let date = cal.date(byAdding: .day, value: offset, to: today)!
-            let norm = oahuNormal(for: date)
+            let norm = locationNormal(for: date)
 
             // Bias decays further into the future
             let decay = hasRecent ? pow(0.60, Double(offset)) : 0.0
@@ -212,9 +218,23 @@ class WeatherEngine: ObservableObject {
 
 struct WeatherView: View {
     @StateObject private var engine = WeatherEngine()
+    @ObservedObject private var locationStore = LocationStore.shared
 
     private let dayFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "EEE"; return f }()
     private let dateFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "MMM d"; return f }()
+
+    private var forecastTitle: String {
+        let loc = locationStore.config.displayName
+        return loc.isEmpty ? "5-Day Forecast" : "\(loc) 5-Day Forecast"
+    }
+
+    private var forecastSubtitle: String {
+        let climateCity = locationStore.config.nearestClimateCity
+        if climateCity.isEmpty {
+            return "Historical averages · NOAA climate normals"
+        }
+        return "Historical averages · \(climateCity) · NOAA climate normals"
+    }
 
     var body: some View {
         ScrollView {
@@ -223,9 +243,9 @@ struct WeatherView: View {
                 // ── Header ────────────────────────────────────────────────────
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Oahu 5-Day Forecast")
+                        Text(forecastTitle)
                             .font(.title2.bold())
-                        Text("Historical averages · Honolulu Intl Airport · NOAA 1991–2020")
+                        Text(forecastSubtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -594,7 +614,7 @@ struct ClimateTable: View {
             Divider()
 
             ForEach(0..<12, id: \.self) { i in
-                let n = oahuNormals[i]
+                let n = locationNormal(for: Calendar.current.date(from: DateComponents(month: i + 1)) ?? Date())
                 HStack {
                     Text(months[i]).font(.system(size: 12)).frame(width: 44, alignment: .leading)
                     Text("\(Int(n.highF))°F").font(.system(size: 12)).frame(width: 54, alignment: .trailing)

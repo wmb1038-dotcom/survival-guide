@@ -34,14 +34,20 @@ struct SearchDoc: Codable, Hashable {
 func sectionColor(_ section: String) -> Color {
     switch section {
     case "Quick Reference":   return .red
+    case "Communications":    return .green
     case "Checklists":        return .green
     case "Supply Tracker":    return Color(red: 0.2, green: 0.5, blue: 0.9)
     case "Weather Forecast":  return .cyan
+    case "Personal Plans":    return .pink
+    case "Calculators":       return .teal
+    case "Medication Tracker":return Color(red: 0.8, green: 0.1, blue: 0.2)
+    case "Documents Vault":   return .indigo
+    case "Skills Log":        return .purple
+    case "Home Repair":       return Color(red: 0.55, green: 0.35, blue: 0.0)
     case "Survival Guides":   return .orange
     case "Military Manuals":  return Color(red: 0.4, green: 0.3, blue: 0.1)
     case "Survival Manuals":  return Color(red: 0.55, green: 0.35, blue: 0.0)
     case "Preparedness":      return Color(red: 0.6, green: 0.2, blue: 0.0)
-    case "Checklists":        return Color(red: 0.0, green: 0.5, blue: 0.3)
     case "Medical":           return .red
     case "Reference":         return .blue
     case "Wikipedia":         return Color(red: 0.05, green: 0.60, blue: 0.55)
@@ -57,14 +63,20 @@ func sectionColor(_ section: String) -> Color {
 func sectionSymbol(_ section: String) -> String {
     switch section {
     case "Quick Reference":   return "exclamationmark.shield.fill"
+    case "Communications":    return "antenna.radiowaves.left.and.right.fill"
     case "Checklists":        return "checklist"
     case "Supply Tracker":    return "cabinet.fill"
     case "Weather Forecast":  return "cloud.sun.fill"
+    case "Personal Plans":    return "person.2.fill"
+    case "Calculators":       return "function"
+    case "Medication Tracker":return "pills.fill"
+    case "Documents Vault":   return "lock.doc.fill"
+    case "Skills Log":        return "checkmark.seal.fill"
+    case "Home Repair":       return "hammer.fill"
     case "Survival Guides":   return "shield.lefthalf.filled"
     case "Military Manuals":  return "star.circle.fill"
     case "Survival Manuals":  return "map.fill"
     case "Preparedness":      return "checklist"
-    case "Checklists":        return "list.bullet.clipboard.fill"
     case "Medical":           return "cross.case.fill"
     case "Reference":         return "books.vertical.fill"
     case "Wikipedia":         return "globe"
@@ -352,13 +364,25 @@ struct ContentView: View {
             // ── TruePrepper Reference ─────────────────────────────────────────────
             LibraryItem(section: "Reference", title: "Military Phonetic Alphabet", type: .pdf, path: "\(base)/offline-library/trueprepper/reference/Printable-PDF-of-the-Military-Phonetic-Alphabet.pdf", desc: "NATO phonetic alphabet reference card."),
             LibraryItem(section: "Reference", title: "Universal Edibility Test", type: .pdf, path: "\(base)/offline-library/trueprepper/reference/Printable-PDF-of-the-Universal-Edibility-Test-for-Survival.pdf", desc: "Field test for unknown plant edibility."),
+            // ── Home Repair ───────────────────────────────────────────────────────────
+            LibraryItem(section: "Home Repair", title: "FEMA P-499 Coastal Construction Guide", type: .pdf, path: "\(base)/offline-library/home-repair/fema-p499-coastal-construction.pdf", desc: "Technical guidance for building in coastal environments."),
+            LibraryItem(section: "Home Repair", title: "FEMA P-804 Wind Retrofit Guide", type: .pdf, path: "\(base)/offline-library/home-repair/fema-p804-wind-retrofit.pdf", desc: "Retrofitting residential buildings for high-wind resilience."),
+            LibraryItem(section: "Home Repair", title: "FEMA P-2055 Post-Disaster Safety Evaluation", type: .pdf, path: "\(base)/offline-library/home-repair/fema-p2055-post-disaster-safety.pdf", desc: "Evaluating structural safety after earthquakes, hurricanes, and floods."),
+            LibraryItem(section: "Home Repair", title: "FEMA Earthquake Safety — Home Retrofit Guide", type: .pdf, path: "\(base)/offline-library/home-repair/fema-earthquake-retrofit-homes.pdf", desc: "Cripple wall, water heater, and anchor bolt retrofits for earthquake resistance."),
+            LibraryItem(section: "Home Repair", title: "FEMA Flood Damage Repairs & Mitigation", type: .pdf, path: "\(base)/offline-library/home-repair/fema-flood-damage-repairs.pdf", desc: "Repairing and hardening homes after flood damage."),
+            LibraryItem(section: "Home Repair", title: "USDA Rural Home Repair & Rehabilitation", type: .pdf, path: "\(base)/offline-library/home-repair/usda-rural-repair-rehabilitation.pdf", desc: "Home repair guidance for rural housing — plumbing, structure, weatherization."),
+            LibraryItem(section: "Home Repair", title: "HUD Healthy Homes Maintenance Guide", type: .pdf, path: "\(base)/offline-library/home-repair/hud-healthy-homes-maintenance.pdf", desc: "Housing maintenance covering plumbing, electrical, HVAC, pest, and mold."),
+            LibraryItem(section: "Home Repair", title: "DOE Weatherization Field Guide", type: .pdf, path: "\(base)/offline-library/home-repair/doe-weatherization-field-guide.pdf", desc: "Insulation, air sealing, and energy-efficient heating/cooling."),
+            LibraryItem(section: "Home Repair", title: "Basic Plumbing Reference Guide", type: .pdf, path: "\(base)/offline-library/home-repair/basic-plumbing-reference.pdf", desc: "Shutoff locations, pipe repair, leak fixes, and drain clearing."),
+            LibraryItem(section: "Home Repair", title: "Electrical Safety for Homeowners", type: .pdf, path: "\(base)/offline-library/home-repair/electrical-safety-homeowners.pdf", desc: "Breaker panels, GFCI, safe wiring, and post-disaster electrical hazards."),
+            // ── Folders ───────────────────────────────────────────────────────────────
             LibraryItem(section: "Folders", title: "Offline Library Root", type: .folder, path: "\(base)/offline-library", desc: "Main library folder."),
             LibraryItem(section: "Folders", title: "Movies", type: .folder, path: "\(base)/offline-library/movies", desc: "Movie files and pages."),
             LibraryItem(section: "Folders", title: "Audiobooks", type: .folder, path: "\(base)/offline-library/audiobooks", desc: "Audiobook files and pages.")
         ]
     }
 
-    private let sectionOrder = ["All", "Survival Guides", "Military Manuals", "Survival Manuals",
+    private let sectionOrder = ["All", "Survival Guides", "Home Repair", "Military Manuals", "Survival Manuals",
                                 "Preparedness", "Medical", "Reference", "Wikipedia", "Radio",
                                 "Cooking", "Gardening & Water", "Books", "Checklists", "Card Games", "Folders"]
 
@@ -398,12 +422,24 @@ struct ContentView: View {
                 Section("Tools") {
                     TopicSidebarRow(name: "Quick Reference", count: 0)
                         .tag("Quick Reference")
+                    TopicSidebarRow(name: "Communications", count: 0)
+                        .tag("Communications")
                     TopicSidebarRow(name: "Checklists", count: 0)
                         .tag("Checklists")
                     TopicSidebarRow(name: "Supply Tracker", count: 0)
                         .tag("Supply Tracker")
                     TopicSidebarRow(name: "Weather Forecast", count: 0)
                         .tag("Weather Forecast")
+                    TopicSidebarRow(name: "Personal Plans", count: 0)
+                        .tag("Personal Plans")
+                    TopicSidebarRow(name: "Calculators", count: 0)
+                        .tag("Calculators")
+                    TopicSidebarRow(name: "Medication Tracker", count: 0)
+                        .tag("Medication Tracker")
+                    TopicSidebarRow(name: "Documents Vault", count: 0)
+                        .tag("Documents Vault")
+                    TopicSidebarRow(name: "Skills Log", count: 0)
+                        .tag("Skills Log")
                 }
                 Section("Library") {
                     ForEach(allSections, id: \.self) { section in
@@ -426,12 +462,24 @@ struct ContentView: View {
             Group {
                 if selectedSection == "Quick Reference" {
                     QuickReferenceView()
+                } else if selectedSection == "Communications" {
+                    CommunicationsView()
                 } else if selectedSection == "Checklists" {
                     ChecklistView()
                 } else if selectedSection == "Supply Tracker" {
                     SupplyTrackerView()
                 } else if selectedSection == "Weather Forecast" {
                     WeatherView()
+                } else if selectedSection == "Personal Plans" {
+                    EmergencyPlanView()
+                } else if selectedSection == "Calculators" {
+                    CalculatorsView()
+                } else if selectedSection == "Medication Tracker" {
+                    MedicationTrackerView()
+                } else if selectedSection == "Documents Vault" {
+                    DocumentsVaultView()
+                } else if selectedSection == "Skills Log" {
+                    SkillsLogView()
                 } else if showingPreview, let item = selectedItem {
                     DetailView(item: item, status: $status, copied: $copied) {
                         withAnimation(.easeInOut(duration: 0.18)) { showingPreview = false }
@@ -499,8 +547,10 @@ struct ContentView: View {
                                         Section {
                                             ForEach(searchResults.prefix(20), id: \.self) { doc in
                                                 Button {
-                                                    selectedItem = libraryItem(from: doc)
-                                                    withAnimation(.easeInOut(duration: 0.18)) { showingPreview = true }
+                                                    if let item = libraryItem(from: doc) {
+                                                        selectedItem = item
+                                                        withAnimation(.easeInOut(duration: 0.18)) { showingPreview = true }
+                                                    }
                                                 } label: {
                                                     SearchResultRow(doc: doc, query: query)
                                                 }
@@ -566,9 +616,13 @@ struct ContentView: View {
         .onAppear { loadIndex() }
     }
 
-    private func libraryItem(from doc: SearchDoc) -> LibraryItem {
-        LibraryItem(section: "Search", title: doc.title, type: inferType(from: doc.path),
-                    path: doc.path, desc: "Full-text search result.")
+    private func libraryItem(from doc: SearchDoc) -> LibraryItem? {
+        // Only allow paths that resolve to within the known library root.
+        // This prevents a tampered search index from opening arbitrary files.
+        let resolvedPath = URL(fileURLWithPath: doc.path).standardized.path
+        guard resolvedPath.hasPrefix("/Volumes/20TB_HDD/") else { return nil }
+        return LibraryItem(section: "Search", title: doc.title, type: inferType(from: doc.path),
+                           path: resolvedPath, desc: "Full-text search result.")
     }
 
     private func inferType(from path: String) -> LibraryItem.ItemType {
@@ -1024,6 +1078,20 @@ struct PDFPreview: NSViewRepresentable {
 
 // ── Web Preview ───────────────────────────────────────────────────────────────
 
+/// Escape characters that are special in HTML to prevent injection.
+private func htmlEscape(_ string: String) -> String {
+    string
+        .replacingOccurrences(of: "&",  with: "&amp;")
+        .replacingOccurrences(of: "<",  with: "&lt;")
+        .replacingOccurrences(of: ">",  with: "&gt;")
+        .replacingOccurrences(of: "\"", with: "&quot;")
+        .replacingOccurrences(of: "'",  with: "&#39;")
+}
+
+private func errorPage(title: String, detail: String) -> String {
+    "<html><body style='font-family:-apple-system;padding:24px'><h2>\(htmlEscape(title))</h2><p>\(htmlEscape(detail))</p></body></html>"
+}
+
 struct WebPreview: NSViewRepresentable {
     let url: URL
 
@@ -1037,7 +1105,7 @@ struct WebPreview: NSViewRepresentable {
         guard context.coordinator.lastLoadedPath != url.path else { return }
         context.coordinator.lastLoadedPath = url.path
         guard FileManager.default.fileExists(atPath: url.path) else {
-            wv.loadHTMLString("<html><body style='font-family:-apple-system;padding:24px'><h2>File not found</h2><p>\(url.path)</p></body></html>", baseURL: nil)
+            wv.loadHTMLString(errorPage(title: "File not found", detail: url.path), baseURL: nil)
             return
         }
         do {
@@ -1045,7 +1113,7 @@ struct WebPreview: NSViewRepresentable {
             html = WebPreview.inlineImages(in: html, baseDir: url.deletingLastPathComponent())
             wv.loadHTMLString(html, baseURL: url.deletingLastPathComponent())
         } catch {
-            wv.loadHTMLString("<html><body style='font-family:-apple-system;padding:24px'><h2>Unable to load</h2><p>\(error.localizedDescription)</p></body></html>", baseURL: nil)
+            wv.loadHTMLString(errorPage(title: "Unable to load", detail: error.localizedDescription), baseURL: nil)
         }
     }
 
@@ -1053,16 +1121,23 @@ struct WebPreview: NSViewRepresentable {
 
     static func inlineImages(in html: String, baseDir: URL) -> String {
         guard let regex = try? NSRegularExpression(pattern: #"src=(["'])([^"']+)\1"#) else { return html }
+        let basePath = baseDir.standardized.path
         var result = ""
         var lastEnd = html.startIndex
         for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard let fullRange = Range(match.range, in: html),
                   let srcRange  = Range(match.range(at: 2), in: html) else { continue }
             let src = String(html[srcRange])
+            // Block absolute paths, remote URLs, data URIs, and path traversal sequences
             guard !src.hasPrefix("http"), !src.hasPrefix("//"),
-                  !src.hasPrefix("data:"), !src.hasPrefix("/") else { continue }
+                  !src.hasPrefix("data:"), !src.hasPrefix("/"),
+                  !src.contains("..") else { continue }
             result.append(contentsOf: html[lastEnd..<fullRange.lowerBound])
-            let imgURL = baseDir.appendingPathComponent(src)
+            let imgURL = baseDir.appendingPathComponent(src).standardized
+            // Ensure resolved path stays within the base directory
+            guard imgURL.path.hasPrefix(basePath + "/") || imgURL.path == basePath else {
+                result.append(contentsOf: html[fullRange]); lastEnd = fullRange.upperBound; continue
+            }
             if let data = try? Data(contentsOf: imgURL) {
                 let mime: String
                 switch imgURL.pathExtension.lowercased() {
@@ -1087,6 +1162,42 @@ struct WebPreview: NSViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate {
         var lastLoadedPath = ""
+
+        /// Allowed base directories for file:// navigation.
+        private let allowedBasePaths = [
+            "/Volumes/20TB_HDD/",
+            NSHomeDirectory() + "/Desktop/"
+        ]
+
+        func webView(_ wv: WKWebView,
+                     decidePolicyFor action: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard let url = action.request.url else { decisionHandler(.cancel); return }
+
+            switch url.scheme {
+            case "about", "blob":
+                // Allow about:blank and blob URLs used by renderer internals
+                decisionHandler(.allow)
+
+            case "file":
+                // Only permit file:// URLs within the known library base paths
+                let path = url.standardized.path
+                if allowedBasePaths.contains(where: { path.hasPrefix($0) }) {
+                    decisionHandler(.allow)
+                } else {
+                    decisionHandler(.cancel)
+                }
+
+            case "http", "https":
+                // Block all external web navigation; open in default browser instead
+                NSWorkspace.shared.open(url)
+                decisionHandler(.cancel)
+
+            default:
+                decisionHandler(.cancel)
+            }
+        }
+
         func webView(_ wv: WKWebView, didFinish _: WKNavigation!) {
             wv.evaluateJavaScript("""
             (function(){
@@ -1100,8 +1211,9 @@ struct WebPreview: NSViewRepresentable {
             })();
             """, completionHandler: nil)
         }
+
         func webView(_ wv: WKWebView, didFail _: WKNavigation!, withError error: Error) {
-            wv.loadHTMLString("<html><body style='font-family:-apple-system;padding:24px'><h2>Load failed</h2><p>\(error.localizedDescription)</p></body></html>", baseURL: nil)
+            wv.loadHTMLString(errorPage(title: "Load failed", detail: error.localizedDescription), baseURL: nil)
         }
     }
 }
@@ -1158,9 +1270,14 @@ class AgentViewModel: ObservableObject {
 
     private let ollamaBase = "http://localhost:11434"
 
-    private let systemPrompt = """
-You are an offline survival assistant for Oahu, Hawaii. The user is a beginner — assume they have no prior survival knowledge. Explain things simply and practically.
+    private var systemPrompt: String {
+        let loc = LocationStore.shared.config
+        var lines: [String] = []
 
+        // Location-specific context from LocationConfig
+        lines.append(loc.systemPromptContext)
+
+        lines.append("""
 RESPONSE FORMAT — always follow this structure:
 1. **Direct answer first** — one or two sentences. Give the key number or action immediately.
 2. **Simple breakdown** — short bullet list if needed. Each bullet is one plain fact or step. No jargon.
@@ -1168,33 +1285,27 @@ RESPONSE FORMAT — always follow this structure:
 4. **📚 Read more:** — end every response with this line, listing 1–3 relevant documents from the library below. Format: `📚 Read more: Document Name, Document Name`
 
 WRITING RULES:
+- The user is a beginner — assume they have no prior survival knowledge. Explain things simply and practically.
 - Write like you're explaining to a nervous neighbor, not a soldier.
 - No markdown asterisks for italics. Use **bold** only for the most critical number or action.
 - No filler ("Great question", "It's important to note", "Certainly").
 - Never restate the question.
 - Be specific: "14 gallons" not "enough water."
 
-OAHU FACTS:
-- Supply chain: 85–90% food imported, ~7–14 days of retail stock
-- Hazards: tsunami (4–5 hr warning from Alaska, minutes from local quake), hurricane Jun–Nov
-- Grid: HECO island-isolated, Campbell Industrial Park + Waiau power plants
-- Comms: NOAA Weather Radio 162.550 MHz, ARES 147.06 MHz, HPD 155.910 MHz
-- Water: Board of Water Supply groundwater, rainwater collection viable, limited desalination
-- Local food: taro, sweet potato, breadfruit, banana, coconut, offshore fishing
-- Routes: H-1/H-2/H-3/Pali Hwy; tunnels close in major earthquake
-- Hospitals: Queen's Medical Center (Level I Trauma), Tripler Army (Level I, elevated site)
-
 LIBRARY DOCUMENTS (reference these by exact name):
 Water/Food: Rain Harvesting Guide, Rainwater Handbook, USDA Home Canning Guide, Survival Food Checklist, Home Survival Kit Checklist
 Medical: Where There Is No Doctor, Where There Is No Dentist, FM 4-25.11 First Aid, AVMA Pet First Aid, Merck Pet Emergency Guide
 Shelter/Survival: FM 21-76 Army Survival Manual, Shelters Shacks and Shanties, LDS Preparedness Manual
-Nuclear: Nuclear War Survival Skills, Build a Protective Fallout Shelter, Oahu Nuclear Strike
+Nuclear: Nuclear War Survival Skills, Build a Protective Fallout Shelter
 Checklists: Bug Out Bag Checklist, Get Home Bag Checklist, Car Emergency Kit Checklist, Nuclear Survival Kit Checklist
-Scenarios: Oahu Tsunami & Hurricane, Grid-Down / EMP — Oahu, Hawaii Supply Chain Collapse, Pandemic & Biological Event
+Scenarios: Pandemic & Biological Event
 Comms: ARES Field Resource Manual
 
 This is offline — never suggest checking the internet.
-"""
+""")
+
+        return lines.joined(separator: "\n")
+    }
 
     func checkOllama() async {
         // Try to connect first
@@ -1285,7 +1396,7 @@ This is offline — never suggest checking the internet.
               let body = try? JSONSerialization.data(withJSONObject: ["model": selectedModel, "messages": payload, "stream": true]) else {
             isThinking = false; return
         }
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: url, timeoutInterval: 300)   // 5 min — llama3 first load is slow
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
@@ -1384,7 +1495,7 @@ struct AgentChatView: View {
                                         .font(.system(size: 26))
                                         .foregroundStyle(.blue)
                                 }
-                                Text("Ask me anything about survival, emergency procedures, Oahu hazards, water, food, radio frequencies, or your offline library.")
+                                Text("Ask me anything about survival, emergency procedures, local hazards, water, food, radio frequencies, or your offline library.")
                                     .font(.body)
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.center)

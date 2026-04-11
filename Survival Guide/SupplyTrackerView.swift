@@ -70,24 +70,29 @@ struct SupplyItem: Codable, Identifiable {
 }
 
 struct HouseholdConfig: Codable {
-    var adults: Int   = 2
-    var children: Int = 0
-    var dogs: Int     = 0
-    var cats: Int     = 0
+    var adults: Int        = 2
+    var children: Int      = 0
+    var dogs: Int          = 0
+    var cats: Int          = 0
+    var smallAnimals: Int  = 0   // rodents, birds, chickens, etc.
 
     var waterNeededPerDay: Double {
-        Double(adults) * 1.0 + Double(children) * 0.75 +
-        Double(dogs)   * 0.5 + Double(cats)     * 0.25
+        Double(adults)       * 1.0  +
+        Double(children)     * 0.75 +
+        Double(dogs)         * 0.5  +
+        Double(cats)         * 0.25 +
+        Double(smallAnimals) * 0.1
     }
 
     var totalPeople: Int { adults + children }
-    var totalPets: Int   { dogs + cats }
+    var totalPets: Int   { dogs + cats + smallAnimals }
     var description: String {
         var parts: [String] = []
-        if adults   > 0 { parts.append("\(adults) adult\(adults == 1 ? "" : "s")") }
-        if children > 0 { parts.append("\(children) child\(children == 1 ? "" : "ren")") }
-        if dogs     > 0 { parts.append("\(dogs) dog\(dogs == 1 ? "" : "s")") }
-        if cats     > 0 { parts.append("\(cats) cat\(cats == 1 ? "" : "s")") }
+        if adults       > 0 { parts.append("\(adults) adult\(adults == 1 ? "" : "s")") }
+        if children     > 0 { parts.append("\(children) child\(children == 1 ? "" : "ren")") }
+        if dogs         > 0 { parts.append("\(dogs) dog\(dogs == 1 ? "" : "s")") }
+        if cats         > 0 { parts.append("\(cats) cat\(cats == 1 ? "" : "s")") }
+        if smallAnimals > 0 { parts.append("\(smallAnimals) small animal\(smallAnimals == 1 ? "" : "s")") }
         return parts.joined(separator: ", ")
     }
 }
@@ -532,10 +537,11 @@ struct HouseholdEditorSheet: View {
             Divider()
 
             Group {
-                HouseholdStepper(label: "Adults",   value: $config.adults,   min: 1)
-                HouseholdStepper(label: "Children", value: $config.children, min: 0)
-                HouseholdStepper(label: "Dogs",     value: $config.dogs,     min: 0)
-                HouseholdStepper(label: "Cats",     value: $config.cats,     min: 0)
+                HouseholdStepper(label: "Adults",                     value: $config.adults,       min: 1)
+                HouseholdStepper(label: "Children",                   value: $config.children,     min: 0)
+                HouseholdStepper(label: "Dogs",                       value: $config.dogs,         min: 0)
+                HouseholdStepper(label: "Cats",                       value: $config.cats,         min: 0)
+                HouseholdStepper(label: "Small Animals (birds, etc.)",value: $config.smallAnimals, min: 0)
             }
 
             Divider()
@@ -545,7 +551,7 @@ struct HouseholdEditorSheet: View {
                 Text("Daily water need: \(String(format: "%.2f", config.waterNeededPerDay)) gallons")
                     .font(.system(size: 13, weight: .medium))
             }
-            Text("Adults: 1 gal · Children: 0.75 gal · Dogs: 0.5 gal · Cats: 0.25 gal")
+            Text("Adults: 1 gal · Children: 0.75 gal · Dogs: 0.5 gal · Cats: 0.25 gal · Small animals: 0.1 gal")
                 .font(.caption).foregroundStyle(.secondary)
 
             HStack {
