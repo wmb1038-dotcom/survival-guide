@@ -36,6 +36,7 @@ struct Medication: Codable, Identifiable {
 
 @MainActor
 class MedicationEngine: ObservableObject {
+    static let shared = MedicationEngine()
     @Published var medications: [Medication] = []
     private let key = "medications_v1"
 

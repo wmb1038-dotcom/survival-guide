@@ -43,6 +43,14 @@ func sectionColor(_ section: String) -> Color {
     case "Medication Tracker":return Color(red: 0.8, green: 0.1, blue: 0.2)
     case "Documents Vault":   return .indigo
     case "Skills Log":        return .purple
+    case "Skill Tree":        return Color(red: 0.5, green: 0.2, blue: 0.9)
+    case "Food Rotation":     return Color(red: 0.7, green: 0.5, blue: 0.2)
+    case "Seed Bank":         return .green
+    case "Power Outage Log":  return Color(red: 0.9, green: 0.7, blue: 0.1)
+    case "Dashboard":         return Color(red: 0.2, green: 0.6, blue: 1.0)
+    case "Water Sources":     return .cyan
+    case "Drills & Practice": return Color(red: 0.3, green: 0.8, blue: 0.4)
+    case "Settings":          return .secondary
     case "Home Repair":       return Color(red: 0.55, green: 0.35, blue: 0.0)
     case "Survival Guides":   return .orange
     case "Military Manuals":  return Color(red: 0.4, green: 0.3, blue: 0.1)
@@ -260,7 +268,7 @@ struct SearchResultRow: View {
 // ── Content View ──────────────────────────────────────────────────────────────
 
 struct ContentView: View {
-    @State private var selectedSection = "All"
+    @State private var selectedSection = "Dashboard"
     @State private var query = ""
     @State private var selectedItem: LibraryItem?
     @State private var searchIndex: [SearchDoc] = []
@@ -420,6 +428,8 @@ struct ContentView: View {
             // ── Left sidebar: topics only ──────────────────────────────────────
             List(selection: $selectedSection) {
                 Section("Tools") {
+                    TopicSidebarRow(name: "Dashboard", count: 0)
+                        .tag("Dashboard")
                     TopicSidebarRow(name: "Quick Reference", count: 0)
                         .tag("Quick Reference")
                     TopicSidebarRow(name: "Communications", count: 0)
@@ -440,12 +450,28 @@ struct ContentView: View {
                         .tag("Documents Vault")
                     TopicSidebarRow(name: "Skills Log", count: 0)
                         .tag("Skills Log")
+                    TopicSidebarRow(name: "Skill Tree", count: 0)
+                        .tag("Skill Tree")
+                    TopicSidebarRow(name: "Food Rotation", count: 0)
+                        .tag("Food Rotation")
+                    TopicSidebarRow(name: "Seed Bank", count: 0)
+                        .tag("Seed Bank")
+                    TopicSidebarRow(name: "Power Outage Log", count: 0)
+                        .tag("Power Outage Log")
+                    TopicSidebarRow(name: "Water Sources", count: 0)
+                        .tag("Water Sources")
+                    TopicSidebarRow(name: "Drills & Practice", count: 0)
+                        .tag("Drills & Practice")
                 }
                 Section("Library") {
                     ForEach(allSections, id: \.self) { section in
                         TopicSidebarRow(name: section, count: sectionCounts[section] ?? 0)
                             .tag(section)
                     }
+                }
+                Section {
+                    TopicSidebarRow(name: "Settings", count: 0)
+                        .tag("Settings")
                 }
             }
             .listStyle(.sidebar)
@@ -480,6 +506,22 @@ struct ContentView: View {
                     DocumentsVaultView()
                 } else if selectedSection == "Skills Log" {
                     SkillsLogView()
+                } else if selectedSection == "Skill Tree" {
+                    SkillTreeView()
+                } else if selectedSection == "Food Rotation" {
+                    FoodRotationView()
+                } else if selectedSection == "Seed Bank" {
+                    SeedBankView()
+                } else if selectedSection == "Power Outage Log" {
+                    PowerOutageView()
+                } else if selectedSection == "Dashboard" {
+                    DashboardView()
+                } else if selectedSection == "Water Sources" {
+                    WaterSourceMapView()
+                } else if selectedSection == "Drills & Practice" {
+                    DrillTrackerView()
+                } else if selectedSection == "Settings" {
+                    SettingsView()
                 } else if showingPreview, let item = selectedItem {
                     DetailView(item: item, status: $status, copied: $copied) {
                         withAnimation(.easeInOut(duration: 0.18)) { showingPreview = false }
