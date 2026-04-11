@@ -33,6 +33,9 @@ struct SearchDoc: Codable, Hashable {
 
 func sectionColor(_ section: String) -> Color {
     switch section {
+    case "Quick Reference":   return .red
+    case "Checklists":        return .green
+    case "Supply Tracker":    return Color(red: 0.2, green: 0.5, blue: 0.9)
     case "Weather Forecast":  return .cyan
     case "Survival Guides":   return .orange
     case "Military Manuals":  return Color(red: 0.4, green: 0.3, blue: 0.1)
@@ -53,6 +56,9 @@ func sectionColor(_ section: String) -> Color {
 
 func sectionSymbol(_ section: String) -> String {
     switch section {
+    case "Quick Reference":   return "exclamationmark.shield.fill"
+    case "Checklists":        return "checklist"
+    case "Supply Tracker":    return "cabinet.fill"
     case "Weather Forecast":  return "cloud.sun.fill"
     case "Survival Guides":   return "shield.lefthalf.filled"
     case "Military Manuals":  return "star.circle.fill"
@@ -390,6 +396,12 @@ struct ContentView: View {
             // ── Left sidebar: topics only ──────────────────────────────────────
             List(selection: $selectedSection) {
                 Section("Tools") {
+                    TopicSidebarRow(name: "Quick Reference", count: 0)
+                        .tag("Quick Reference")
+                    TopicSidebarRow(name: "Checklists", count: 0)
+                        .tag("Checklists")
+                    TopicSidebarRow(name: "Supply Tracker", count: 0)
+                        .tag("Supply Tracker")
                     TopicSidebarRow(name: "Weather Forecast", count: 0)
                         .tag("Weather Forecast")
                 }
@@ -412,7 +424,13 @@ struct ContentView: View {
             }
         } detail: {
             Group {
-                if selectedSection == "Weather Forecast" {
+                if selectedSection == "Quick Reference" {
+                    QuickReferenceView()
+                } else if selectedSection == "Checklists" {
+                    ChecklistView()
+                } else if selectedSection == "Supply Tracker" {
+                    SupplyTrackerView()
+                } else if selectedSection == "Weather Forecast" {
                     WeatherView()
                 } else if showingPreview, let item = selectedItem {
                     DetailView(item: item, status: $status, copied: $copied) {
