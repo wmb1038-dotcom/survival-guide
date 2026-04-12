@@ -86,7 +86,7 @@ class SurvivalGuideGenerator: ObservableObject {
                     prompt: hazardPrompt(hazard, config)
                 )
                 let html = wrapHTML(title: "\(hazard.rawValue) — \(config.displayName)",
-                                    content: content, hazard: hazard)
+                                    content: sanitizeLLMHTML(content), hazard: hazard)
                 let fname = safeFilename(hazard.rawValue) + ".html"
                 try html.write(to: outDir.appendingPathComponent(fname),
                                atomically: true, encoding: .utf8)
@@ -251,6 +251,24 @@ class SurvivalGuideGenerator: ObservableObject {
          .replacingOccurrences(of: " / ", with: "-")
          .replacingOccurrences(of: "/", with: "-")
          .replacingOccurrences(of: " ", with: "-")
+    }
+
+    /// Strips dangerous HTML tags from raw LLM output before embedding in a page.
+    /// The LLM is instructed not to emit these, but we sanitize defensively.
+    private func sanitizeLLMHTML(_ raw: String) -> String {
+        let dangerous = ["script", "style", "link", "iframe", "object",
+                         "embed", "form", "input", "meta", "base", "noscript"]
+        var s = raw
+        for tag in dangerous {
+            // Both opening tags (with optional attributes) and closing tags
+            if let re = try? NSRegularExpression(
+                pattern: "</?\\s*\(tag)(\\s[^>]*)?>",
+                options: [.caseInsensitive, .dotMatchesLineSeparators]) {
+                s = re.stringByReplacingMatches(
+                    in: s, range: NSRange(s.startIndex..., in: s), withTemplate: "")
+            }
+        }
+        return s
     }
 
     private func escapeHTML(_ s: String) -> String {

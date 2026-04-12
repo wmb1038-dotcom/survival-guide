@@ -464,8 +464,10 @@ struct SettingsView: View {
                     "medications_v1", "drills_v1", "outage_events_v1",
                     "fuel_log_v1", "battery_log_v1", "seeds_v1",
                     "garden_beds_v1", "water_sources_v1", "skills_v1",
-                    "quick_ref_cards_v1", "checklist_completed_v1"]
+                    "quick_ref_cards_v1", "checklist_completed_v1",
+                    "documents_vault_v1"]          // legacy plaintext migration remnant
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        VaultEngine().deleteAll()                  // wipe Keychain vault
         NotificationManager.shared.cancelAll()
     }
 }

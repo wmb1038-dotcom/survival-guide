@@ -1,5 +1,51 @@
 import SwiftUI
 import Combine
+import Security
+
+// MARK: - Keychain helper (replaces UserDefaults for sensitive vault data)
+
+private enum VaultKeychain {
+    private static let service = "com.woodrowbell.Survival-Guide.vault"
+    private static let account = "documents_vault_v1"
+
+    static func load() -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData:  kCFBooleanTrue as Any,
+            kSecMatchLimit:  kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess else { return nil }
+        return result as? Data
+    }
+
+    static func save(_ data: Data) {
+        let query: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account
+        ]
+        let attrs: [CFString: Any] = [kSecValueData: data]
+        let status = SecItemUpdate(query as CFDictionary, attrs as CFDictionary)
+        if status == errSecItemNotFound {
+            var addQuery = query
+            addQuery[kSecValueData] = data
+            SecItemAdd(addQuery as CFDictionary, nil)
+        }
+    }
+
+    static func delete() {
+        let query: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
 
 // MARK: - Models
 
@@ -55,7 +101,6 @@ struct VaultEntry: Codable, Identifiable {
 @MainActor
 class VaultEngine: ObservableObject {
     @Published var entries: [VaultEntry] = []
-    private let key = "documents_vault_v1"
 
     init() { load() }
 
@@ -71,14 +116,29 @@ class VaultEngine: ObservableObject {
         entries.removeAll { $0.id == e.id }; save()
     }
 
+    /// Persists vault entries in the macOS Keychain (encrypted at rest).
     func save() {
-        if let d = try? JSONEncoder().encode(entries) {
-            UserDefaults.standard.set(d, forKey: key)
-        }
+        guard let d = try? JSONEncoder().encode(entries) else { return }
+        VaultKeychain.save(d)
+    }
+
+    /// Wipes all vault data from the Keychain.
+    func deleteAll() {
+        entries = []
+        VaultKeychain.delete()
     }
 
     private func load() {
-        guard let d = UserDefaults.standard.data(forKey: key),
+        // Migrate from legacy UserDefaults store on first launch after update
+        let legacyKey = "documents_vault_v1"
+        if let legacyData = UserDefaults.standard.data(forKey: legacyKey),
+           let decoded = try? JSONDecoder().decode([VaultEntry].self, from: legacyData) {
+            entries = decoded
+            save()                                           // write to Keychain
+            UserDefaults.standard.removeObject(forKey: legacyKey) // remove plaintext copy
+            return
+        }
+        guard let d = VaultKeychain.load(),
               let decoded = try? JSONDecoder().decode([VaultEntry].self, from: d) else { return }
         entries = decoded
     }
