@@ -12,8 +12,9 @@ import Combine
 class LocalWebServer: ObservableObject {
     static let shared = LocalWebServer()
 
-    @Published var isRunning = false
-    @Published var localURL  = ""
+    @Published var isRunning  = false
+    @Published var localURL   = ""   // IP-based:   http://192.168.86.100:8080
+    @Published var bonjourURL = ""   // Bonjour:     http://mymac.local:8080
 
     private var listener: NWListener?
 
@@ -34,12 +35,14 @@ class LocalWebServer: ObservableObject {
                 guard let self else { return }
                 switch state {
                 case .ready:
-                    self.isRunning = true
-                    let ip = self.localIP()
-                    self.localURL = "http://\(ip):\(port)"
+                    self.isRunning  = true
+                    let ip          = self.localIP()
+                    self.localURL   = "http://\(ip):\(port)"
+                    self.bonjourURL = "http://\(self.bonjourHostname()):\(port)"
                 case .failed, .cancelled:
-                    self.isRunning = false
-                    self.localURL  = ""
+                    self.isRunning  = false
+                    self.localURL   = ""
+                    self.bonjourURL = ""
                 default: break
                 }
             }
@@ -49,9 +52,10 @@ class LocalWebServer: ObservableObject {
 
     func stop() {
         listener?.cancel()
-        listener  = nil
-        isRunning = false
-        localURL  = ""
+        listener   = nil
+        isRunning  = false
+        localURL   = ""
+        bonjourURL = ""
     }
 
     // MARK: - Accept connection
@@ -322,5 +326,14 @@ class LocalWebServer: ObservableObject {
         Host.current().addresses
             .first { !$0.contains(":") && $0 != "127.0.0.1" }
             ?? "localhost"
+    }
+
+    /// Returns the Bonjour (.local) hostname — e.g. "woodrows-mac.local".
+    /// Users can shorten this in System Settings → General → Sharing → Local Hostname.
+    private func bonjourHostname() -> String {
+        let host = ProcessInfo.processInfo.hostName  // e.g. "Woodrows-Mac.local"
+        if host.hasSuffix(".local") { return host }
+        if !host.contains(".")     { return "\(host).local" }
+        return host
     }
 }

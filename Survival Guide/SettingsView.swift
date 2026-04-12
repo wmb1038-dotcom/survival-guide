@@ -325,19 +325,45 @@ struct SettingsView: View {
                 }
 
                 if server.isRunning {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 6) {
                             Circle().fill(.green).frame(width: 8, height: 8)
-                            Text("Running — open from any device on the network:")
-                                .font(.system(size: 12))
+                            Text("Running")
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.green)
                         }
-                        Text(server.localURL)
-                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(.blue)
-                            .textSelection(.enabled)
 
-                        Text("Dashboard auto-refreshes every 60 seconds. Append /api/status for JSON.")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("By IP (always works)")
+                                .font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text(server.localURL)
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.blue)
+                                .textSelection(.enabled)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("By name (Apple devices & Windows 10+)")
+                                .font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text(server.bonjourURL)
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.cyan)
+                                .textSelection(.enabled)
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("To shorten the name address:")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("System Settings → General → Sharing → Local Hostname")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Text("Set it to a single word like 'home' or 'base' and this becomes http://home.local:8080")
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
+                        }
+
+                        Text("Dashboard auto-refreshes every 60 s · Append /api/status for JSON")
                             .font(.system(size: 10)).foregroundStyle(.secondary)
                     }
                     .padding(10)

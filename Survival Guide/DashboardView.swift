@@ -12,6 +12,7 @@ struct DashboardView: View {
     @StateObject private var seedEngine    = SeedBankEngine.shared
     @StateObject private var medEngine     = MedicationEngine.shared
     @StateObject private var settingsStore = AppSettingsStore.shared
+    @StateObject private var webServer     = LocalWebServer.shared
 
     @EnvironmentObject private var locationStore: LocationStore
     @EnvironmentObject private var supplyEngine : SupplyEngine
@@ -22,6 +23,7 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 locationHeader
+                if webServer.isRunning { networkBanner }
                 statusRow
                 alertsSection
                 statsGrid
@@ -61,6 +63,50 @@ struct DashboardView: View {
         }
         .padding(16)
         .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Network Banner
+
+    private var networkBanner: some View {
+        HStack(spacing: 10) {
+            Circle().fill(.green).frame(width: 7, height: 7)
+                .overlay(Circle().stroke(Color.green.opacity(0.3), lineWidth: 3))
+
+            Image(systemName: "network")
+                .font(.system(size: 12))
+                .foregroundStyle(.green)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Dashboard live on your network")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.green)
+                HStack(spacing: 8) {
+                    Text(webServer.bonjourURL)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.cyan)
+                        .textSelection(.enabled)
+                    Text("·")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    Text(webServer.localURL)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
+
+            Spacer()
+
+            Text("read-only")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 5).padding(.vertical, 2)
+                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.green.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.18)))
     }
 
     // MARK: - Status Row
