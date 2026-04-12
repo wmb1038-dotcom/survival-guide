@@ -50,6 +50,7 @@ func sectionColor(_ section: String) -> Color {
     case "Dashboard":         return Color(red: 0.2, green: 0.6, blue: 1.0)
     case "Water Sources":     return .cyan
     case "Drills & Practice": return Color(red: 0.3, green: 0.8, blue: 0.4)
+    case "Home Network":      return .teal
     case "Settings":          return .secondary
     case "Home Repair":       return Color(red: 0.55, green: 0.35, blue: 0.0)
     case "Survival Guides":   return .orange
@@ -80,6 +81,7 @@ func sectionSymbol(_ section: String) -> String {
     case "Medication Tracker":return "pills.fill"
     case "Documents Vault":   return "lock.doc.fill"
     case "Skills Log":        return "checkmark.seal.fill"
+    case "Home Network":      return "wifi.router.fill"
     case "Home Repair":       return "hammer.fill"
     case "Survival Guides":   return "shield.lefthalf.filled"
     case "Military Manuals":  return "star.circle.fill"
@@ -462,6 +464,8 @@ struct ContentView: View {
                         .tag("Water Sources")
                     TopicSidebarRow(name: "Drills & Practice", count: 0)
                         .tag("Drills & Practice")
+                    TopicSidebarRow(name: "Home Network", count: 0)
+                        .tag("Home Network")
                 }
                 Section("Library") {
                     ForEach(allSections, id: \.self) { section in
@@ -520,6 +524,8 @@ struct ContentView: View {
                     WaterSourceMapView()
                 } else if selectedSection == "Drills & Practice" {
                     DrillTrackerView()
+                } else if selectedSection == "Home Network" {
+                    HomeNetworkView()
                 } else if selectedSection == "Settings" {
                     SettingsView()
                 } else if showingPreview, let item = selectedItem {
