@@ -16,6 +16,8 @@ struct AppSettings: Codable {
     var notifyGeneratorTest    : Bool    = true
     var notifyMedications      : Bool    = true
     var notifyDrills           : Bool    = true
+    var enableWebServer        : Bool    = false
+    var webServerPort          : UInt16  = 8080
 }
 
 @MainActor
@@ -62,6 +64,7 @@ struct SettingsView: View {
                 locationSection
                 ollamaSection
                 offlineMapsSection
+                webServerSection
                 notificationsSection
                 calorieSection
                 dataSection
@@ -281,6 +284,67 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showCustomRegion) {
             CustomRegionSheet { mapManager.addCustomRegion($0) }
+        }
+    }
+
+    // MARK: - Web Server
+
+    private var webServerSection: some View {
+        let server = LocalWebServer.shared
+        return SettingsCard(title: "Network Dashboard", symbol: "network", color: .blue) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Serve a live read-only status dashboard to any phone or computer on your local network. Shows water/food days, power status, expiring items, drills, and a link to the offline library.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+
+                HStack {
+                    Toggle("Enable on LAN", isOn: $store.settings.enableWebServer)
+                        .font(.system(size: 13))
+                        .toggleStyle(.switch)
+                        .onChange(of: store.settings.enableWebServer) { _, enabled in
+                            store.save()
+                            if enabled { server.start(port: store.settings.webServerPort) }
+                            else        { server.stop() }
+                        }
+                }
+
+                if store.settings.enableWebServer {
+                    HStack {
+                        Text("Port").font(.system(size: 13))
+                        Spacer()
+                        TextField("8080", value: $store.settings.webServerPort, format: .number)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 70)
+                            .onChange(of: store.settings.webServerPort) { _, _ in
+                                store.save()
+                                if server.isRunning {
+                                    server.stop()
+                                    server.start(port: store.settings.webServerPort)
+                                }
+                            }
+                    }
+                }
+
+                if server.isRunning {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Circle().fill(.green).frame(width: 8, height: 8)
+                            Text("Running — open from any device on the network:")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.green)
+                        }
+                        Text(server.localURL)
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(.blue)
+                            .textSelection(.enabled)
+
+                        Text("Dashboard auto-refreshes every 60 seconds. Append /api/status for JSON.")
+                            .font(.system(size: 10)).foregroundStyle(.secondary)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.green.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+                }
+            }
         }
     }
 

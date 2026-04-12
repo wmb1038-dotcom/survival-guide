@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct Survival_GuideApp: App {
     @StateObject private var locationStore = LocationStore.shared
-    @StateObject private var supplyEngine = SupplyEngine()
+    @StateObject private var supplyEngine  = SupplyEngine()
 
     var body: some Scene {
         WindowGroup {
@@ -18,6 +18,13 @@ struct Survival_GuideApp: App {
             }
             .environmentObject(locationStore)
             .environmentObject(supplyEngine)
+            .task {
+                // Auto-start the local web server if it was enabled on last launch
+                let settings = AppSettingsStore.shared.settings
+                if settings.enableWebServer {
+                    LocalWebServer.shared.start(port: settings.webServerPort)
+                }
+            }
         }
         .windowStyle(.titleBar)
     }
