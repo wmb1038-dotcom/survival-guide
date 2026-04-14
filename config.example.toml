@@ -1,0 +1,19 @@
+# awareness — example config
+# Copy to: ~/Library/Application Support/awareness/config.toml
+
+# Free API key from https://aisstream.io (register → dashboard → API keys)
+aisstream_api_key = "YOUR_KEY_HERE"
+
+# Bounding box for Oahu waters.
+# Covers Honolulu Harbor approach, Barbers Point channel, Pearl Harbor entrance.
+# min_lat must be < max_lat; min_lon must be < max_lon.
+[oahu_bbox]
+min_lat = 20.3
+max_lat = 22.0
+min_lon = -159.0
+max_lon = -157.0
+
+[poll_intervals]
+ais_reconnect   = 30     # seconds between WebSocket reconnect attempts
+port_page       = 300    # seconds between Matson/Pasha schedule fetches
+congestion_page = 3600   # seconds between SoCal Marine Exchange fetches

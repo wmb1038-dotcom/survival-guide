@@ -155,6 +155,7 @@ class LocalWebServer: ObservableObject {
             case "meds":   return handleMeds(req)
             case "drills": return handleDrills(req)
             case "water":  return handleWater(req)
+            case "map":    return handleMap()
             default: return (404, "text/plain", "Not found".utf8data)
             }
         }
@@ -375,6 +376,17 @@ class LocalWebServer: ObservableObject {
             return (204, "text/plain", Data())
         default: return (405, "text/plain", "Method not allowed".utf8data)
         }
+    }
+
+    // MARK: - API: Map
+
+    private func handleMap() -> (Int, String, Data) {
+        // Use absolute path to ensure it works regardless of the app's working directory
+        let path = "/Users/woodrowbell/Desktop/Survival Guide/app_data/dashboard.html"
+        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+            return (200, "text/html", data)
+        }
+        return (404, "text/plain", "Map not found. Awareness engine is working in the background...".utf8data)
     }
 
     // MARK: - Single-Page App HTML

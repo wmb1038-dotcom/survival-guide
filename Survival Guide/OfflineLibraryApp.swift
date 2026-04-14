@@ -48,6 +48,7 @@ func sectionColor(_ section: String) -> Color {
     case "Seed Bank":         return .green
     case "Power Outage Log":  return Color(red: 0.9, green: 0.7, blue: 0.1)
     case "Dashboard":         return Color(red: 0.2, green: 0.6, blue: 1.0)
+    case "Unified Map":       return .blue
     case "Water Sources":     return .cyan
     case "Drills & Practice": return Color(red: 0.3, green: 0.8, blue: 0.4)
     case "Home Network":      return .teal
@@ -299,6 +300,7 @@ struct ContentView: View {
             LibraryItem(section: "Gardening & Water", title: "NCHFP Home Page", type: .html, path: "\(base)/offline-library/gardening-water/nchfp_home.html", desc: "Food preservation landing page."),
             LibraryItem(section: "Radio", title: "ARES Field Resource Manual", type: .pdf, path: "\(base)/offline-library/radio/ARES_FR_Manual.pdf", desc: "Emergency comms manual."),
             LibraryItem(section: "Radio", title: "ARES Manual", type: .pdf, path: "\(base)/offline-library/radio/ARES_Manual.pdf", desc: "ARES operations reference."),
+            LibraryItem(section: "Radio", title: "AIS Ship Type Primer", type: .html, path: "/Users/woodrowbell/Desktop/Survival Guide/app_data/ais_primer.html", desc: "Reference for AIS numeric codes and ship categories."),
             LibraryItem(section: "Medical", title: "Human First Aid + CPR (No EMS)", type: .html, path: "\(base)/offline-library/medical-human/human_first_aid_no_ems.html", desc: "Offline human first aid, CPR, and symptom lookup."),
             LibraryItem(section: "Medical", title: "AVMA Pet First Aid", type: .html, path: "\(base)/offline-library/medical-pets/avma_pet_first_aid.html", desc: "Pet first aid basics."),
             LibraryItem(section: "Medical", title: "Merck Pet Emergency Guide", type: .html, path: "\(base)/offline-library/medical-pets/merck-html/what_to_do_in_dog_or_cat_emergency_merck.html", desc: "What to do in a dog/cat emergency."),
@@ -432,6 +434,8 @@ struct ContentView: View {
                 Section("Tools") {
                     TopicSidebarRow(name: "Dashboard", count: 0)
                         .tag("Dashboard")
+                    TopicSidebarRow(name: "Unified Map", count: 0)
+                        .tag("Unified Map")
                     TopicSidebarRow(name: "Quick Reference", count: 0)
                         .tag("Quick Reference")
                     TopicSidebarRow(name: "Communications", count: 0)
@@ -519,7 +523,9 @@ struct ContentView: View {
                 } else if selectedSection == "Power Outage Log" {
                     PowerOutageView()
                 } else if selectedSection == "Dashboard" {
-                    DashboardView()
+                    DashboardView(selectedSection: $selectedSection)
+                } else if selectedSection == "Unified Map" {
+                    UnifiedMapView()
                 } else if selectedSection == "Water Sources" {
                     WaterSourceMapView()
                 } else if selectedSection == "Drills & Practice" {

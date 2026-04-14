@@ -41,3 +41,13 @@ offline_search_index.json
 # Sensitive / personal data
 *.json.bak
 UserDefaults/
+
+# Python / Environment
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+awareness.egg-info/
+
+# Generated Data
+app_data/

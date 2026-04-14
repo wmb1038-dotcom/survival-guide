@@ -24,6 +24,9 @@ struct Survival_GuideApp: App {
                 if settings.enableWebServer {
                     LocalWebServer.shared.start(port: settings.webServerPort)
                 }
+                
+                // Start the maritime awareness engine (monitors WiFi and manages AIS ingest)
+                let _ = MaritimeAwarenessEngine.shared
             }
         }
         .windowStyle(.titleBar)

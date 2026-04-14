@@ -4,6 +4,7 @@ import Combine
 // MARK: - Dashboard View
 
 struct DashboardView: View {
+    @Binding var selectedSection: String
     @StateObject private var foodEngine    = FoodRotationEngine.shared
     @StateObject private var powerEngine   = PowerOutageEngine.shared
     @StateObject private var supplyStore   = SupplyEngine()          // local read-only snapshot
@@ -59,6 +60,22 @@ struct DashboardView: View {
                         .padding(6)
                         .background(h.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
                 }
+                
+                if !locationStore.config.hazards.isEmpty {
+                    Divider().frame(height: 20).padding(.horizontal, 4)
+                }
+                
+                Button {
+                    selectedSection = "Unified Map"
+                } label: {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.blue)
+                        .padding(6)
+                        .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .help("Open Unified Map Dashboard")
             }
         }
         .padding(16)
@@ -96,6 +113,17 @@ struct DashboardView: View {
             }
 
             Spacer()
+
+            Button {
+                selectedSection = "Unified Map"
+            } label: {
+                Label("Open Map", systemImage: "map.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.green.opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
 
             Text("read-only")
                 .font(.system(size: 9, weight: .semibold))
@@ -246,10 +274,18 @@ struct DashboardView: View {
                 value: "\(wsEngine.sources.count)", unit: "mapped",
                 status: wsEngine.sources.isEmpty ? .warn : .good
             )
+            .onTapGesture { selectedSection = "Water Sources" }
 
-            // Total fuel logged
             StatGridCard(
-                symbol: "fuelpump.fill", color: .yellow, title: "Fuel Logged",
+                symbol: "antenna.radiowaves.left.and.right", color: .blue, title: "Unified Map",
+                value: "\(wsEngine.sources.count)", unit: "mapped",
+                status: .good
+            )
+            .onTapGesture { selectedSection = "Unified Map" }
+
+            StatGridCard(
+                symbol: "fuelpump.fill", color: .orange, title: "Fuel Logged",
+
                 value: String(format: "%.0f", powerEngine.totalFuelGallons), unit: "gallons",
                 status: .neutral
             )
