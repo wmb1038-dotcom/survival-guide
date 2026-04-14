@@ -381,9 +381,10 @@ class LocalWebServer: ObservableObject {
     // MARK: - API: Map
 
     private func handleMap() -> (Int, String, Data) {
-        // Use absolute path to ensure it works regardless of the app's working directory
-        let path = "/Users/woodrowbell/Desktop/Survival Guide/app_data/dashboard.html"
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+        // Look for the file in the current working directory first
+        let fm = FileManager.default
+        let path = "app_data/dashboard.html"
+        if fm.fileExists(atPath: path), let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
             return (200, "text/html", data)
         }
         return (404, "text/plain", "Map not found. Awareness engine is working in the background...".utf8data)

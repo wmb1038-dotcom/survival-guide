@@ -4,6 +4,7 @@ Unified Layered Map Dashboard.
 Combines Water Sources and Maritime Traffic into a single interactive Folium map.
 """
 
+import html
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -34,7 +35,11 @@ def get_ais_type_name(code):
     if not code:
         return "Unknown"
     
-    code = int(code)
+    try:
+        code = int(code)
+    except (ValueError, TypeError):
+        return f"Type {code}"
+
     # Cargo (70-79)
     if 70 <= code <= 79:
         return f"Cargo ({code})"
@@ -58,8 +63,8 @@ def get_ais_type_name(code):
     # Other Common
     if 30 == code: return "Fishing (30)"
     if 31 == code: return "Towing (31)"
-    if 32 == code: return "Dredging (32)"
-    if 33 == code: return "Diving Ops (33)"
+    if 32 == code: return "Towing (32)"
+    if 33 == code: return "Dredging (33)"
     if 35 == code: return "Military (35)"
     if 36 == code: return "Sailing (36)"
     if 37 == code: return "Pleasure Craft (37)"
@@ -120,9 +125,7 @@ def get_maritime_traffic():
     """
     try:
         with db.connect() as conn:
-            rows = conn.execute(query).fetchall()
-            print(f"DEBUG: Found {len(rows)} maritime vessels with positions in last 60 minutes.")
-            return rows
+            return conn.execute(query).fetchall()
     except Exception as e:
         print(f"Maritime query error: {e}")
         return []
@@ -153,7 +156,13 @@ def generate():
     sources = get_water_sources()
     for s in sources:
         style = WATER_STYLES.get(s.get("type"), WATER_STYLES["Other"])
-        popup_text = f"<b>{s.get('name')}</b><br>Type: {s.get('type')}<br>Reliability: {s.get('reliability')}"
+        
+        # Sanitize data
+        s_name = html.escape(str(s.get('name', 'Unknown')))
+        s_type = html.escape(str(s.get('type', 'Other')))
+        s_rel  = html.escape(str(s.get('reliability', 'Unknown')))
+        
+        popup_text = f"<b>{s_name}</b><br>Type: {s_type}<br>Reliability: {s_rel}"
         if s.get("treatmentRequired"):
             popup_text += "<br><span style='color:red;'>⚠ Treatment Required</span>"
         
@@ -181,6 +190,11 @@ def generate():
         color = op_colors.get(v["operator"], "gray")
         type_name = get_ais_type_name(v["ais_type"])
         
+        # Sanitize all external data
+        v_name = html.escape(str(v['name'] or 'Unknown Vessel'))
+        v_op   = html.escape(str(v['operator']).title())
+        v_type = html.escape(str(type_name))
+        
         try:
             ts_dt = datetime.strptime(v["ts"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
             ago_min = int((now - ts_dt).total_seconds() / 60)
@@ -188,9 +202,9 @@ def generate():
             ago_min = "?"
             
         popup_text = (
-            f"<b>{v['name'] or 'Unknown Vessel'}</b><br>"
-            f"Operator: {v['operator'].title()}<br>"
-            f"Ship Type: {type_name}<br>"
+            f"<b>{v_name}</b><br>"
+            f"Operator: {v_op}<br>"
+            f"Ship Type: {v_type}<br>"
             f"Speed: {v['sog'] or 0} kn<br>"
             f"Course: {v['cog'] or 0}°<br>"
             f"Last seen: {ago_min} min ago"

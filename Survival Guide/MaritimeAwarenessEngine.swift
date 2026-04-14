@@ -11,8 +11,8 @@ class MaritimeAwarenessEngine: ObservableObject {
     private var ingestProcess: Process?
     private var dashboardTimer: AnyCancellable?
     
-    // Path configuration for development
-    private let projectRoot = "/Users/woodrowbell/Desktop/Survival Guide"
+    // Path configuration - In dev, we assume current working directory
+    private var projectRoot: String { FileManager.default.currentDirectoryPath }
     private var pythonPath: String { "\(projectRoot)/.venv/bin/python3" }
     
     @Published var isOnline = false
