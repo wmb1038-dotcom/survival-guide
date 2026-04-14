@@ -34,6 +34,8 @@ Built for Oahu, Hawaii (Island + Mountainous terrain), but fully configurable fo
 | **Skills Log** | Flat checklist of survival skills by category |
 | **Skill Tree** | Visual tiered skill tree (Tier 1 Critical → Tier 3 Useful) with category progress rings; syncs with Skills Log |
 | **Power Outage Log** | Live outage status, one-tap start/end, outage history, fuel log, battery level log with stats |
+| **Unified Map** | Interactive multi-layer Folium map (Satellite/Light/Dark) combining mapped Water Sources and real-time Maritime Traffic |
+| **Maritime Tracking** | Background AIS ingestion and vessel classification (Matson, Pasha, Tankers) with automated dashboard generation |
 
 ### Library
 - **Offline Document Library** — Browse PDFs, HTML guides, EPUBs, and ZIM archives organized by topic
@@ -48,6 +50,7 @@ Built for Oahu, Hawaii (Island + Mountainous terrain), but fully configurable fo
 |---|---|
 | macOS | 13.0 Ventura or later |
 | Xcode | 15 or later |
+| Python | 3.11 or later |
 | [Ollama](https://ollama.com) | Latest (optional — enables AI chat + guide generation) |
 | Disk space | ~5 GB minimum for a useful library |
 
@@ -62,7 +65,28 @@ git clone https://github.com/wmb1038-dotcom/survival-guide.git
 cd survival-guide
 ```
 
-### 2. Install Ollama (optional but recommended)
+### 2. Configure Maritime Awareness (Optional)
+
+The app includes an automated AIS tracking and dashboard system.
+
+1. **Create Python environment:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -e .
+   ```
+
+2. **Configure API Key:**
+   Copy `config.example.toml` to `~/Library/Application Support/awareness/config.toml` and add your free API key from [aisstream.io](https://aisstream.io).
+
+3. **Initialize Database:**
+   ```bash
+   awareness init
+   ```
+
+The Swift app will now automatically manage vessel tracking and dashboard generation whenever you are connected to WiFi.
+
+### 3. Install Ollama (optional but recommended)
 
 Download from [ollama.com](https://ollama.com) and pull a model:
 
