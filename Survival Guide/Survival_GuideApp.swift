@@ -22,11 +22,13 @@ struct Survival_GuideApp: App {
                 // Auto-start the local web server if it was enabled on last launch
                 let settings = AppSettingsStore.shared.settings
                 if settings.enableWebServer {
+                    print("🌐 Starting Local Web Server on port \(settings.webServerPort)...")
                     LocalWebServer.shared.start(port: settings.webServerPort)
                 }
                 
-                // Start the maritime awareness engine (monitors WiFi and manages AIS ingest)
+                // Start engines
                 let _ = MaritimeAwarenessEngine.shared
+                let _ = ResilienceEngine.shared
             }
         }
         .windowStyle(.titleBar)

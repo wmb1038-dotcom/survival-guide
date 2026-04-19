@@ -73,7 +73,7 @@ func sectionColor(_ section: String) -> Color {
 func sectionSymbol(_ section: String) -> String {
     switch section {
     case "Quick Reference":   return "exclamationmark.shield.fill"
-    case "Communications":    return "antenna.radiowaves.left.and.right.fill"
+    case "Communications": return "antenna.radiowaves.left.and.right"
     case "Checklists":        return "checklist"
     case "Supply Tracker":    return "cabinet.fill"
     case "Weather Forecast":  return "cloud.sun.fill"

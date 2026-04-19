@@ -11,8 +11,11 @@ class MaritimeAwarenessEngine: ObservableObject {
     private var ingestProcess: Process?
     private var dashboardTimer: AnyCancellable?
     
-    // Path configuration - In dev, we assume current working directory
-    private var projectRoot: String { FileManager.default.currentDirectoryPath }
+    // Path configuration - Dynamically locate the project root relative to home
+    private var projectRoot: String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return "\(home)/Desktop/Woody's Files/02_Hobbies/Apps/Survival Guide"
+    }
     private var pythonPath: String { "\(projectRoot)/.venv/bin/python3" }
     
     @Published var isOnline = false
@@ -56,13 +59,34 @@ class MaritimeAwarenessEngine: ObservableObject {
         print("⚓️ Starting Maritime Awareness...")
         startIngest()
         forceGenerate()
+        updateResilience() // Initial update on launch
         
         // Refresh every 5 minutes
         dashboardTimer = Timer.publish(every: 300, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.forceGenerate()
+                self?.updateResilience()
             }
+    }
+    
+    func updateResilience() {
+        print("🚦 Updating Situational Resilience Stoplights...")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.currentDirectoryURL = URL(fileURLWithPath: projectRoot)
+        // Run the update script directly
+        process.arguments = [pythonPath, "scripts/update_dashboard.py"]
+        
+        // Run silently in background
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        
+        do {
+            try process.run()
+        } catch {
+            print("❌ Failed to trigger resilience update: \(error)")
+        }
     }
     
     func stopAwareness() {

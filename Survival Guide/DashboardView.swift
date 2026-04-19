@@ -14,6 +14,7 @@ struct DashboardView: View {
     @StateObject private var medEngine     = MedicationEngine.shared
     @StateObject private var settingsStore = AppSettingsStore.shared
     @StateObject private var webServer     = LocalWebServer.shared
+    @StateObject private var resilience    = ResilienceEngine.shared
 
     @EnvironmentObject private var locationStore: LocationStore
     @EnvironmentObject private var supplyEngine : SupplyEngine
@@ -25,12 +26,33 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 20) {
                 locationHeader
                 if webServer.isRunning { networkBanner }
+                resilienceRow
                 statusRow
                 alertsSection
                 statsGrid
                 bottomRow
             }
             .padding(20)
+        }
+    }
+
+    // MARK: - Resilience Row
+
+    private var resilienceRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !resilience.state.timestamp.isEmpty {
+                Text("SITUATIONAL ANALYSIS // \(resilience.state.timestamp.uppercased())")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+            }
+            
+            HStack(spacing: 10) {
+                ResilienceStoplight(status: resilience.state.weather)
+                ResilienceStoplight(status: resilience.state.geological)
+                ResilienceStoplight(status: resilience.state.logistics)
+                ResilienceStoplight(status: resilience.state.resources)
+            }
         }
     }
 
@@ -489,5 +511,44 @@ private struct AlertRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct ResilienceStoplight: View {
+    let status: ResilienceStatus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(status.color)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: status.color.opacity(0.5), radius: 3)
+                
+                Text(status.label.uppercased())
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(status.color.opacity(0.9))
+            }
+            
+            Text(status.details)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+            
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
+        .background(Color.white.opacity(0.03))
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(status.color.opacity(0.15), lineWidth: 0.5)
+        )
+        .contentShape(Rectangle())
+        .help(status.hoverText.isEmpty ? status.details : status.hoverText)
     }
 }

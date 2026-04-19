@@ -16,6 +16,16 @@
 			path = "Survival Guide";
 			sourceTree = "<group>";
 		};
+		A7575DE32F85EC6D0090BA7B /* awareness */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = awareness;
+			sourceTree = "<group>";
+		};
+		A7575DE42F85EC6D0090BA7B /* scripts */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = scripts;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +43,8 @@
 			isa = PBXGroup;
 			children = (
 				A7575DE22F85EC6D0090BA7B /* Survival Guide */,
+				A7575DE32F85EC6D0090BA7B /* awareness */,
+				A7575DE42F85EC6D0090BA7B /* scripts */,
 				A7575DE12F85EC6D0090BA7B /* Products */,
 			);
 			sourceTree = "<group>";

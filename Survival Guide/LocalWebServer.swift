@@ -92,15 +92,51 @@ class LocalWebServer: ObservableObject {
 
     private func accept(_ conn: NWConnection) {
         conn.start(queue: .global(qos: .utility))
-        conn.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, _ in
-            guard let data else { conn.cancel(); return }
-            let raw = String(data: data, encoding: .utf8) ?? ""
-            let req = Self.parse(raw)
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                let response = self.respond(req)
-                conn.send(content: response, completion: .contentProcessed { _ in conn.cancel() })
+        // Accumulate data for up to 5 seconds or 1MB
+        var accumulatedData = Data()
+        
+        func receive() {
+            conn.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
+                if let data = data {
+                    accumulatedData.append(data)
+                }
+                
+                if isComplete || error != nil || accumulatedData.count > 1_000_000 {
+                    self?.processAccumulatedData(accumulatedData, conn: conn)
+                } else {
+                    // Check if we have the full HTTP request (headers + body)
+                    let raw = String(data: accumulatedData, encoding: .utf8) ?? ""
+                    if raw.contains("\r\n\r\n") {
+                        // Very basic check for Content-Length vs accumulated body
+                        let parts = raw.components(separatedBy: "\r\n\r\n")
+                        let headers = parts[0]
+                        if let range = headers.range(of: "Content-Length: ", options: .caseInsensitive) {
+                            let lengthStr = headers[range.upperBound...].components(separatedBy: "\r\n")[0]
+                            if let length = Int(lengthStr.trimmingCharacters(in: .whitespaces)),
+                               parts.count > 1, parts[1].utf8.count >= length {
+                                self?.processAccumulatedData(accumulatedData, conn: conn)
+                                return
+                            }
+                        } else if !headers.contains("POST") {
+                            // GET requests don't need body
+                            self?.processAccumulatedData(accumulatedData, conn: conn)
+                            return
+                        }
+                    }
+                    receive() // Keep receiving
+                }
             }
+        }
+        receive()
+    }
+
+    private func processAccumulatedData(_ data: Data, conn: NWConnection) {
+        let raw = String(data: data, encoding: .utf8) ?? ""
+        let req = Self.parse(raw)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let response = self.respond(req)
+            conn.send(content: response, completion: .contentProcessed { _ in conn.cancel() })
         }
     }
 
@@ -124,6 +160,7 @@ class LocalWebServer: ObservableObject {
     // MARK: Router
 
     private func respond(_ req: HTTPRequest) -> Data {
+        print("🌐 Web Server: \(req.method) \(req.path)")
         let (status, mime, body) = route(req)
         let phrase: String
         switch status {
@@ -149,7 +186,8 @@ class LocalWebServer: ObservableObject {
 
         if seg0 == "api" {
             switch seg1 {
-            case "status": return handleStatus()
+            case "status":     return handleStatus()
+            case "resilience": return handleResilience(req)
             case "food":   return handleFood(req)
             case "supply": return handleSupply(req)
             case "meds":   return handleMeds(req)
@@ -176,6 +214,7 @@ class LocalWebServer: ObservableObject {
         let sources = WaterSourceEngine.shared
         let s       = AppSettingsStore.shared.settings
         let hh      = supply.household
+        let res     = ResilienceEngine.shared.state
 
         let dailyCal  = Double(hh.adults) * s.dailyCaloriesAdult + Double(hh.children) * s.dailyCaloriesChild
         let foodDays  = dailyCal > 0 ? Int(food.totalCalories / dailyCal) : 0
@@ -184,6 +223,7 @@ class LocalWebServer: ObservableObject {
 
         var d: [String: Any] = [
             "location":       LocationStore.shared.config.displayName,
+            "resilience":     (try? JSONSerialization.jsonObject(with: JSONEncoder().encode(res))) ?? [:],
             "water_days":     waterDays,
             "food_days":      foodDays,
             "food_expiring":  food.expiringSoon.count,
@@ -202,6 +242,16 @@ class LocalWebServer: ObservableObject {
         }
         return (try? JSONSerialization.data(withJSONObject: d, options: .prettyPrinted))
             .map { ($0).asJSON() } ?? (200, "application/json", "{}".utf8data)
+    }
+
+    private func handleResilience(_ req: HTTPRequest) -> (Int, String, Data) {
+        switch req.method {
+        case "POST":
+            ResilienceEngine.shared.update(from: req.body)
+            return (204, "text/plain", Data())
+        default:
+            return ok(ResilienceEngine.shared.state)
+        }
     }
 
     // MARK: - API: Food
@@ -381,9 +431,11 @@ class LocalWebServer: ObservableObject {
     // MARK: - API: Map
 
     private func handleMap() -> (Int, String, Data) {
-        // Look for the file in the current working directory first
+        // Use Application Support for reliability
         let fm = FileManager.default
-        let path = "app_data/dashboard.html"
+        let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let path = appSupport.appendingPathComponent("awareness/dashboard.html").path
+        
         if fm.fileExists(atPath: path), let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
             return (200, "text/html", data)
         }
@@ -460,6 +512,20 @@ class LocalWebServer: ObservableObject {
         .btn-secondary{background:rgba(139,148,158,.1);color:var(--text)}
         /* Alert */
         .alert-bar{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:.6rem .9rem;margin-bottom:.75rem;font-size:.82rem;color:var(--yellow)}
+        /* Stoplights */
+        .resilience-row{display:flex;gap:.5rem;margin-bottom:.75rem}
+        .stoplight{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.5rem;display:flex;flex-direction:column;gap:.2rem;cursor:help;transition:background .1s}
+        .stoplight:active{background:#1c2128}
+        .stoplight-header{display:flex;align-items:center;gap:.35rem}
+        .stoplight-dot{width:7px;height:7px;border-radius:50%}
+        .stoplight-label{font-size:.58rem;font-weight:700;text-transform:uppercase;color:var(--dim);letter-spacing:.05em}
+        .stoplight-detail{font-size:.65rem;font-weight:500;line-height:1.2;height:1.6rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+        .bg-red{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.3)}
+        .bg-yellow{background:rgba(210,153,34,.12);border-color:rgba(210,153,34,.3)}
+        .bg-green{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.3)}
+        .dot-red{background:var(--red);box-shadow:0 0 4px var(--red)}
+        .dot-yellow{background:var(--yellow);box-shadow:0 0 4px var(--yellow)}
+        .dot-green{background:var(--green);box-shadow:0 0 4px var(--green)}
         /* Empty state */
         .empty{text-align:center;padding:3rem 1rem;color:var(--dim);font-size:.9rem}
         /* Spinner */
@@ -570,6 +636,25 @@ class LocalWebServer: ObservableObject {
           if (s.power_outage) html += '<div class="alert-bar">⚡ POWER OUTAGE ACTIVE' + (s.outage_elapsed_min ? ' — ' + s.outage_elapsed_min + ' min' : '') + '</div>';
           if (s.food_expiring > 0) html += '<div class="alert-bar">⚠ ' + s.food_expiring + ' food item' + (s.food_expiring>1?'s':'') + ' expiring within 30 days</div>';
           if (s.drills_overdue > 0) html += '<div class="alert-bar">⚠ ' + s.drills_overdue + ' drill type' + (s.drills_overdue>1?'s':'') + ' overdue</div>';
+          
+          // Resilience Stoplights
+          if (s.resilience) {
+            html += '<div class="resilience-row">';
+            ['weather','geological','logistics','resources'].forEach(key => {
+              const r = s.resilience[key];
+              if (!r) return;
+              const color = r.status.toLowerCase();
+              html += `<div class="stoplight bg-${color}" title="${esc(r.hoverText || r.details)}">
+                <div class="stoplight-header">
+                  <div class="stoplight-dot dot-${color}"></div>
+                  <div class="stoplight-label">${esc(r.label)}</div>
+                </div>
+                <div class="stoplight-detail">${esc(r.details)}</div>
+              </div>`;
+            });
+            html += '</div>';
+          }
+
           const grid = [
             {v:s.water_days, u:'days', l:'Water', c:wc},
             {v:s.food_days,  u:'days', l:'Food',  c:fc},

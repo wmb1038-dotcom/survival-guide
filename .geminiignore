@@ -1,0 +1,7 @@
+# Ignore the massive 20TB library symlink
+Library/
+**/Library/
+.venv/
+**/__pycache__/
+*.pdf
+*.zim

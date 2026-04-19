@@ -15,7 +15,7 @@ from awareness import config, db
 
 # --- Constants & Paths ---
 APP_SUPPORT = db.APP_SUPPORT
-DASHBOARD_PATH = Path("app_data/dashboard.html")
+DASHBOARD_PATH = APP_SUPPORT / "dashboard.html"
 WATER_SOURCES_JSON = APP_SUPPORT / "water_sources.json"
 
 # --- Helper: Water Source Styles ---
@@ -103,29 +103,38 @@ def get_maritime_traffic():
     if not db.DB_PATH.exists():
         return []
     
+    # Improved Query: 
+    # 1. Find latest timestamp for each MMSI in last 60m
+    # 2. Join back to observations to get that specific row's data
+    # 3. LEFT JOIN to vessels so we see names/operators if known
     query = """
-    SELECT 
-        v.name,
-        v.operator,
-        v.ais_type,
-        o.lat,
-        o.lon,
-        o.sog,
-        o.cog,
-        o.ts
-    FROM vessels v
-    JOIN (
-        SELECT mmsi, lat, lon, sog, cog, MAX(ts) as ts
+    WITH latest_obs AS (
+        SELECT mmsi, MAX(ts) as max_ts
         FROM ais_observations
         WHERE ts >= datetime('now', '-60 minutes')
           AND lat IS NOT NULL 
           AND lon IS NOT NULL
         GROUP BY mmsi
-    ) o ON v.mmsi = o.mmsi
+    )
+    SELECT 
+        o.mmsi,
+        COALESCE(v.name, 'MMSI ' || o.mmsi) as vessel_name,
+        COALESCE(v.operator, 'unknown') as operator,
+        COALESCE(v.ais_type, 0) as ais_type,
+        o.lat,
+        o.lon,
+        o.sog,
+        o.cog,
+        o.ts
+    FROM latest_obs lo
+    JOIN ais_observations o ON lo.mmsi = o.mmsi AND lo.max_ts = o.ts
+    LEFT JOIN vessels v ON o.mmsi = v.mmsi
     """
     try:
         with db.connect() as conn:
-            return conn.execute(query).fetchall()
+            rows = conn.execute(query).fetchall()
+            print(f"DEBUG: Found {len(rows)} maritime vessels.")
+            return rows
     except Exception as e:
         print(f"Maritime query error: {e}")
         return []
@@ -187,12 +196,24 @@ def generate():
     now = datetime.now(timezone.utc)
     
     for v in vessels:
-        color = op_colors.get(v["operator"], "gray")
-        type_name = get_ais_type_name(v["ais_type"])
+        # Determine color
+        op = v["operator"]
+        color = op_colors.get(op, "gray")
         
-        # Sanitize all external data
-        v_name = html.escape(str(v['name'] or 'Unknown Vessel'))
-        v_op   = html.escape(str(v['operator']).title())
+        # Human readable type
+        type_name = get_ais_type_name(v["ais_type"])
+        if not v["ais_type"] or v["ais_type"] == 0:
+            type_name = "Identifying..."
+        
+        # Sanitize and handle empty names
+        raw_name = str(v['vessel_name']).strip()
+        is_pending = False
+        if not raw_name or raw_name.upper() == "NONE" or raw_name.startswith("MMSI"):
+            raw_name = f"MMSI {v['mmsi']}"
+            is_pending = True
+            
+        v_name = html.escape(raw_name)
+        v_op   = html.escape(str(op).title() if op != "unknown" else "Identifying...")
         v_type = html.escape(str(type_name))
         
         try:
@@ -209,6 +230,8 @@ def generate():
             f"Course: {v['cog'] or 0}°<br>"
             f"Last seen: {ago_min} min ago"
         )
+        if is_pending:
+            popup_text += "<br><small><i>(Vessel identity pending AIS broadcast)</i></small>"
         
         folium.CircleMarker(
             location=[v["lat"], v["lon"]],
@@ -226,7 +249,7 @@ def generate():
     fg_maritime.add_to(m)
     folium.LayerControl(collapsed=False).add_to(m)
     
-    DASHBOARD_PATH.parent.mkdir(exist_ok=True)
+    APP_SUPPORT.mkdir(parents=True, exist_ok=True)
     m.save(DASHBOARD_PATH)
     print(f"✓ Dashboard generated: {DASHBOARD_PATH.absolute()}")
 
