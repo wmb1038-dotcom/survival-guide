@@ -34,8 +34,22 @@ Built for Oahu, Hawaii (Island + Mountainous terrain), but fully configurable fo
 | **Skills Log** | Flat checklist of survival skills by category |
 | **Skill Tree** | Visual tiered skill tree (Tier 1 Critical → Tier 3 Useful) with category progress rings; syncs with Skills Log |
 | **Power Outage Log** | Live outage status, one-tap start/end, outage history, fuel log, battery level log with stats |
+| **Resilience Dashboard** | Star Trek: SNW-themed situational awareness stoplights (Weather, Geological, Logistics, Resources) with automated background analysis and tooltips |
 | **Unified Map** | Interactive multi-layer Folium map (Satellite/Light/Dark) combining mapped Water Sources and real-time Maritime Traffic |
 | **Maritime Tracking** | Background AIS ingestion and vessel classification (Matson, Pasha, Tankers) with automated dashboard generation |
+
+### Automation & Logic
+The app includes a suite of background scripts for enhanced situational awareness:
+- **Resilience Engine** — Automatically fetches and analyzes live data (NWS, USGS, HDOT, Gas Prices) on launch to update the dashboard.
+- **Ghost Finder** — Cross-references port schedules with live AIS pings to identify vessels that have gone dark (overdue for a ping).
+- **PortCall Scraper** — Automated extraction of Honolulu and Kalaeloa Barbers Point vessel schedules.
+- **Watchdog Alert** — macOS system-level integration that triggers audio alerts and modal popups for critical (RED) status changes.
+- **Resilience Wizard** — Interactive CLI for managing the downloading of multi-gigabyte offline data bundles (Wikipedia, WikiMed, OSM Maps) to external drives.
+
+### Medical & Resources
+- **Hawaii Medical Cheat Sheets** — Specially adapted from the Special Forces Medical Handbook for tropical bacteria, volcanic terrain, and local hazards (Leptospirosis, Rat Lungworm, Ciguatera).
+- **Pocket Survival Booklet** — A high-readability, printable field manual designed to fit into a 4x6 waterproof pouch.
+- **PDF Generator** — Built-in ReportLab script to generate durable, duplex-ready medical guides with crop marks.
 
 ### Library
 - **Offline Document Library** — Browse PDFs, HTML guides, EPUBs, and ZIM archives organized by topic
